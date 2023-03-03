@@ -10,6 +10,7 @@ Original file is located at
 #https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
 import urllib.parse
+import streamlit as st
 
 sql= 'select * from "ECHO_EXPORTER" where "FAC_CITY" = \'PEEKSKILL\''
 
