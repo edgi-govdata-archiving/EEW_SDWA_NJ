@@ -17,7 +17,7 @@ sql= 'select * from "ECHO_EXPORTER" where "FAC_CITY" = \'PEEKSKILL\''
 def load_data(sql):
   url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
   data_location = url + urllib.parse.quote_plus(sql) + '&pg'
-  data = pd.read_csv(data_location,encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"}
+  data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
   data["LAT"] = data["FAC_LAT"]
   data["LON"] = data["FAC_LONG"]
   return data
