@@ -3,3 +3,5 @@ streamlit
 pandas
 urllib3
 ipyleaflet
+geopandas
+json
