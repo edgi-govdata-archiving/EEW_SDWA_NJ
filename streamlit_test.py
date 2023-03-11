@@ -3,7 +3,7 @@
 #https://docs.streamlit.io/library/get-started/create-an-app 
 
 
-#from hello import hello_world
+from hello import hello_world
 
 """
 # Map
@@ -41,4 +41,4 @@ m
 import streamlit as st
 data_load_state = st.text('Loading data...')
 data_load_state.text('Loading data...done!')
-#hello_world()
+hello_world()
