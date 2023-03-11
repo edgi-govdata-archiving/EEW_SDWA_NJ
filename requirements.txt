@@ -1,1 +1,2 @@
-
+ipyleaflet
+git+git://github.com/ericnost/hello.git#egg=hello
