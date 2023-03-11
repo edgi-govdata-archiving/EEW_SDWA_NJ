@@ -2,11 +2,9 @@
 # Pick a place and get ECHO facilities
 #https://docs.streamlit.io/library/get-started/create-an-app 
 
-import pandas as pd
-import urllib.parse
+
 from hello import hello_world
 
-hello_world()
 """
 # Map
 from ipyleaflet import Map, Marker, basemaps, basemap_to_tiles
@@ -40,3 +38,7 @@ import streamlit as st
 
 m
 """
+import streamlit as st
+data_load_state = st.text('Loading data...')
+data_load_state.text('Loading data...done!')
+hello_world()
