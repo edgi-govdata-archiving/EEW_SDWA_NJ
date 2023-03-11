@@ -4,7 +4,7 @@
 
 import pandas as pd
 import urllib.parse
-from hello import hello_world
+import hello
 
 hello_world()
 
