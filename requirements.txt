@@ -1,1 +1,1 @@
-git+https://github.com/ericnost#egg=hello
+git+http://github.com/ericnost#egg=hello
