@@ -1,8 +1,6 @@
 # streamlit place picker test
 # Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
-pip install ipyleaflet
-pip install git+git://github.com/ericnost/hello.git#egg=hello
+#https://docs.streamlit.io/library/get-started/create-an-app 
 
 import pandas as pd
 import urllib.parse
