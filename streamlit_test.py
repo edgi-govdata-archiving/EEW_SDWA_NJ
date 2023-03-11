@@ -4,7 +4,7 @@
 
 import pandas as pd
 import urllib.parse
-import hello
+from hello import hello_world
 
 hello_world()
 
@@ -38,4 +38,4 @@ import streamlit as st
 #data = load_data(sql)
 #data_load_state.text('Loading data...done!')
 
-display(m)
+m
