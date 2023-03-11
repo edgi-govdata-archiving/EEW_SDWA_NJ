@@ -1,2 +1,2 @@
 ipyleaflet
-git+git://github.com/ericnost/hello.git#egg=hello
+git+https://github.com/ericnost#egg=hello
