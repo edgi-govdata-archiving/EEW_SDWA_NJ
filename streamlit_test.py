@@ -40,4 +40,5 @@ m
 """
 import streamlit as st
 data_load_state = st.text('Loading data...')
-data_load_state.text(hello_world())
+message = hello_world()
+data_load_state.text(message)
