@@ -7,7 +7,7 @@ import urllib.parse
 from hello import hello_world
 
 hello_world()
-
+"""
 # Map
 from ipyleaflet import Map, Marker, basemaps, basemap_to_tiles
 
@@ -20,7 +20,7 @@ m = Map(
 marker = Marker(location=(40, -74), draggable=True) # defaults to New Jersey for SDWA project
 m.add_layer(marker);
 
-"""
+
 sql= 'select * from "ECHO_EXPORTER" where "FAC_CITY" = \'PEEKSKILL\''
 
 def load_data(sql):
@@ -30,7 +30,7 @@ def load_data(sql):
   data["LAT"] = data["FAC_LAT"]
   data["LON"] = data["FAC_LONG"]
   return data
-"""
+
 
 # Streamlit section
 import streamlit as st
@@ -39,3 +39,4 @@ import streamlit as st
 #data_load_state.text('Loading data...done!')
 
 m
+"""
