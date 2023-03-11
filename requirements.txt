@@ -1,1 +1,5 @@
 git+https://github.com/ericnost/hello.git#egg=hello
+streamlit
+pandas
+urllib
+ipyleaflet
