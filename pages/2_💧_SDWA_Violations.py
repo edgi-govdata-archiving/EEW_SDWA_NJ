@@ -50,8 +50,6 @@ def main():
     st.session_state["data"] = None
   if "bounds" not in st.session_state:
     st.session_state["bounds"] = None # could set initial bounds here
-  if "ej_run" not in st.session_state:
-    st.session_state["ej_run"] = False
 
   c1, c2, c3 = st.columns(3)
 
@@ -96,33 +94,35 @@ def main():
     st.markdown("# Violation types")
     st.dataframe(violation_type)
     st.bar_chart(violation_type)
-
+  
   if ((out["last_active_drawing"]) 
     and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
     and (out["last_active_drawing"]["geometry"]["type"] != "Point")
   ):
     st.session_state["last_active_drawing"] = out["last_active_drawing"]
-    st.session_state["ej_run"] = False
-
     bounds = out["last_active_drawing"]
     bounds = geopandas.GeoDataFrame.from_features([bounds])
     bounds.set_crs(4269, inplace=True)
-    x1,y1,x2,y2 = bounds.geometry.total_bounds
-    st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+    if bounds.geometry.area[0] < .07:
+      x1,y1,x2,y2 = bounds.geometry.total_bounds
+      st.session_state["bounds"] = [[y1, x1], [y2, x2]]
 
-    these_pws = geopandas.clip(sdwa, bounds.geometry)
-    markers = [folium.Marker(location=[mark.geometry.y, mark.geometry.x], popup=f"{mark.FAC_NAME}") for index,mark in these_pws.iterrows() if not mark.geometry.is_empty]
-    st.session_state["markers"] = markers
+      these_pws = geopandas.clip(sdwa, bounds.geometry)
+      markers = [folium.Marker(location=[mark.geometry.y, mark.geometry.x], popup=f"{mark.FAC_NAME}") for index,mark in these_pws.iterrows() if not mark.geometry.is_empty]
+      st.session_state["markers"] = markers
 
-    # Pass to chart constructor
-    these_pws = list(these_pws["PWSID"].unique())
-    data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
-    st.session_state["data"] = data
+      # Pass to chart constructor
+      these_pws = list(these_pws["PWSID"].unique())
+      data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+      st.session_state["data"] = data
+      st.experimental_rerun()
+    else:
+      with c1:
+        st.markdown("### You've drawn a big area! Try drawing a smaller one.")
+      st.session_state["last_active_drawing"] = None
+      out["last_active_drawing"] = None
+
     
-    
-
-
-    st.experimental_rerun()
 
 if __name__ == "__main__":
   main()
