@@ -1,6 +1,0 @@
-git+https://github.com/ericnost/hello.git#egg=hello
-streamlit
-pandas
-urllib3
-ipyleaflet
-geopandas
