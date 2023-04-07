@@ -1,7 +1,7 @@
 [[source]]
-url = "https://pypi.org/simple"
+url = "environmentalenforcementwatch.org"
 verify_ssl = true
-name = "pypi"
+name = "SDWA_EEW"
 
 [packages]
 streamlit = "*"
@@ -10,9 +10,9 @@ urllib3 = "*"
 folium = "*"
 geopandas = "*"
 streamlit-folium = "*"
-hello = {git = "https://github.com/ericnost/hello.git"}
 requests = "*"
 branca = "*"
+openpyxl = "*"
 
 [dev-packages]
 

@@ -10,7 +10,17 @@ import folium
 from folium.plugins import Draw
 
 st.set_page_config(layout="wide")
-st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
+st.markdown(""" # Search for Public Water Systems and Find Violations
+Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
+
+*Important: your box should be fairly small, so that you are focused on a specific community or region, otherwise you'll get an error message.
+If that happens, just draw a smaller box and try again.*
+
+After you draw the box, the page will load any public water systems within it as well as details about any violations of SDWA they may have
+recorded since 2001.
+
+Later, if you wish to expand your search or narrow it, you can come back to this page and draw a different box.
+""")
 
 @st.cache_data
 def get_data(query):
@@ -33,40 +43,46 @@ def get_data_from_ids(table, key, list_of_ids):
   data = get_data(sql)
   return data
 
-# Map all SDWA PWS
-## Convert to circle markers 
-sdwa = st.session_state["sdwa"]
-sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
-markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], popup=folium.Popup(''+mark["PWS_NAME"]+': '+mark["SOURCE_WATER"]), radius=6, fill_color="orange") for index,mark in sdwa.iterrows() if not mark.geometry.is_empty]
+# Reload, but don't map, PWS
+try:
+  sdwa = st.session_state["sdwa"]
+  sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+except:
+  st.error("### Error: Did you forget to start on the 'Statewide Overview' page?")
+  st.stop()
 
 # Streamlit section
 # Map
 def main():
   if "markers" not in st.session_state:
-    st.session_state["markers"] = [] #folium.Marker(location=[40.1, -74.1])
+    st.session_state["markers"] = []
   if "last_active_drawing" not in st.session_state:
     st.session_state["last_active_drawing"] = None
   if "data" not in st.session_state:
     st.session_state["data"] = None
   if "bounds" not in st.session_state:
-    st.session_state["bounds"] = None # could set initial bounds here
+    st.session_state["bounds"] = None
 
   c1, c2, c3 = st.columns(3)
 
   with c1:
     
-    m = folium.Map(location=[40,-74], zoom_start=8)
+    m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
     if st.session_state["bounds"]:
       m.fit_bounds(st.session_state["bounds"])
-    fg = folium.FeatureGroup(name="Markers")
-    for marker in st.session_state["markers"]:
-      fg.add_child(marker)
+    fg = folium.FeatureGroup()
 
-    Draw(export=True).add_to(m)
-    # add st.session_state["last_active_drawing"]
+    Draw(
+      export=False,
+      draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
+      edit_options=None
+    ).add_to(m)
+
     if st.session_state["last_active_drawing"]:
       geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
       fg.add_child(geo_j)
+    for marker in st.session_state["markers"]:
+      fg.add_child(marker)
 
     out = st_folium(
       m,
@@ -78,20 +94,22 @@ def main():
     )
   # Manipulate data
   try:
-    counts = st.session_state["data"].groupby(by="PWSID")[["PWSID"]].count()
-    counts.rename(columns={"PWSID": "COUNT"}, inplace=True)
+    counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
+    counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
+    counts = counts.sort_values(by="COUNT", ascending=False)
     violation_type = st.session_state["data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
     violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
+    violation_type = violation_type.sort_values(by="COUNT", ascending=False)
   except:
     counts = []
     violation_type = []
 
   with c2:
-    st.markdown("# SDWA Violations")
+    st.markdown("# SDWA Violations by PWS")
     st.dataframe(counts) 
     st.bar_chart(counts)
   with c3:
-    st.markdown("# Violation types")
+    st.markdown("# Health-Based Violations")
     st.dataframe(violation_type)
     st.bar_chart(violation_type)
   
@@ -107,14 +125,17 @@ def main():
       x1,y1,x2,y2 = bounds.geometry.total_bounds
       st.session_state["bounds"] = [[y1, x1], [y2, x2]]
 
+      # Get data
       these_pws = geopandas.clip(sdwa, bounds.geometry)
-      markers = [folium.Marker(location=[mark.geometry.y, mark.geometry.x], popup=f"{mark.FAC_NAME}") for index,mark in these_pws.iterrows() if not mark.geometry.is_empty]
-      st.session_state["markers"] = markers
-
-      # Pass to chart constructor
       these_pws = list(these_pws["PWSID"].unique())
       data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
       st.session_state["data"] = data
+      markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
+        popup = folium.Popup(
+        mark["FAC_NAME"] + "<br>"
+        ), #PWS_NAME
+        radius = 6, fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
+      st.session_state["markers"] = markers
       st.experimental_rerun()
     else:
       with c1:

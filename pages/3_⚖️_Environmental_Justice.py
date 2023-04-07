@@ -13,7 +13,24 @@ import json
 import requests, zipfile, io
 
 st.set_page_config(layout="wide")
-st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
+st.markdown("""
+# How do SDWA Violations affect Environmental Justice (EJ) in this Place?
+Here you can explore socio-economic demographics and pollution exposures recorded for the place you drew a box around
+on the previous page. Does this place experience environmental marginalization in terms of high exposures to lead, traffic exhaust,
+and so on? Is it socially marginalized in terms of race, income, or age? 
+
+Remember: if you want to explore somewhere else or change the boundaries, you can always go back to the 
+"Statewide Violations" page and do so, then return here.
+
+Use the dropdown menu to select an EJ measure. The map will change to show each of the Census block groups in the place and
+the recorded value for the measure there. The data come from EPA's EJScreen tool.
+
+*Important: any percentages shown here are shown as decimals. For instance, 80% is shown as .8*
+
+On the map, the darker the shade of the blue, 
+the more of the measure - a higher percentage minority population, cancer rate, or number of underground storage tanks, for instance.
+
+""")
 
 @st.cache_data
 def add_spatial_data(url, name, projection=4326):
@@ -40,7 +57,6 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # Load and join census data
-
 census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2017/BG/tl_2017_34_bg.zip", name="census") #, projection=4269
 ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
 ej_data["ID"] = ej_data["ID"].astype(str)
@@ -48,17 +64,19 @@ census_data.set_index("GEOID", inplace=True)
 ej_data.set_index("ID", inplace=True)
 census_data = census_data.join(ej_data)
 
-# convert st.session_state["last_active_drawing"]
-location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
-# filter to area
-bgs = census_data[census_data.geometry.intersects(location.geometry[0]) ] #block groups in the area around the clicked point
+# Convert st.session_state["last_active_drawing"]
+try:
+  location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
+except:
+  st.error("### Error: Did you forget to start on the 'Statewide Overview' page and/or draw a box on the 'SDWA Violations' page?")
+  st.stop()
+# Filter to area
+bgs = census_data[census_data.geometry.intersects(location.geometry[0]) ] # Block groups in the area around the clicked point
 bg_data = bgs
-#st.session_state["bg_data"] = bgs
-# set new bounds
+# Set new bounds
 x1,y1,x2,y2 = bgs.geometry.total_bounds
-#st.session_state["bounds"] = [[y1, x1], [y2, x2]]
 bounds = [[y1, x1], [y2, x2]]
-#bgs back to features
+# bgs back to features
 bgs = json.loads(bgs.to_json())
 
 # Streamlit section
@@ -72,59 +90,64 @@ def main():
     st.session_state["last_active_drawing"] = None
   if "bgs" not in st.session_state:
     st.session_state["bgs"] = []
-  if "bg_data" not in st.session_state:
-    st.session_state["bg_data"] = None
-  if "ej_run" not in st.session_state:
-    st.session_state["ej_run"] = False
   if "ejvar" not in st.session_state:
     st.session_state["ejvar"] = None
   
-  c1, c2, c3 = st.columns(3)
+  c1, c2 = st.columns(2)
 
   with c2:
-    # EJ variable picking parameters
-    options = ["LOWINCPCT", "MINORPCT", "OVER64PCT", "CANCER"] # list of EJScreen variables that will be selected
-    st.markdown("# What EJ variable to explore?")
+    # EJ parameters
+    options = [
+      "MINORPCT",
+      "LOWINCPCT",
+      "LESSHSPCT",
+      "LINGISOPCT",
+      "UNDER5PCT",
+      "OVER64PCT",
+      "PRE1960PCT",
+      "UNEMPPCT",
+      "VULEOPCT",
+      "DISPEO",
+      "DSLPM",
+      "CANCER",
+      "RESP",
+      "PTRAF",
+      "PWDIS",
+      "PNPL",
+      "PRMP",
+      "PTSDF",
+      "OZONE",
+      "PM25",
+      "UST"
+    ] # list of EJScreen variables that will be selected
+    st.markdown("# Which EJ measure to explore?")
     ejvar = st.selectbox(
-      "What EJ variable to explore?",
+      "Which EJ measure to explore?",
       options,
       label_visibility = "hidden"
     )
-
-    st.markdown("#### See details on each variable: [metadata]('https://gaftp.epa.gov/EJSCREEN/2021/2021_EJSCREEEN_columns-explained.xlsx')")   
-    st.write(bg_data.sort_values(by=[ejvar], ascending=False)[['NAMELSAD',ejvar]])
-    st.write(ejvar)
+    st.bar_chart(bg_data.sort_values(by=[ejvar], ascending=False)[[ejvar]])
 
   with c1:
-    m = folium.Map()
-    #if st.session_state["bounds"]:
-    m.fit_bounds(bounds) #st.session_state["bounds"]
+    m = folium.Map(tiles="cartodb positron")
+    m.fit_bounds(bounds)
 
-    #colorscale = branca.colormap.linear.YlOrRd_09.scale(bg_data[ejvar].min(), bg_data[ejvar].max())
     def style(feature):
       # choropleth approach
       # set colorscale
-      colorscale = branca.colormap.linear.YlOrRd_09.scale(bg_data[ejvar].min(), bg_data[ejvar].max())
+      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].min(), bg_data[ejvar].max()) # 0 - 1? 
       return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(feature["properties"][ejvar])
 
-    fg = folium.FeatureGroup(name="BlockGroups")
-    #if st.session_state["bgs"]:
-    gj = folium.GeoJson(
-      bgs,
-      #st.session_state["bgs"],
-      style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75}, #style(bg)
-      popup=folium.GeoJsonPopup(fields=['NAMELSAD', ejvar])
-      ).add_to(m) #.add_to(fg)
-
-    # add st.session_state["last_active_drawing"]
-    #if st.session_state["last_active_drawing"]:
+    fg = folium.FeatureGroup()
     geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
     geo_j.add_to(m)
-    #add markers
+    gj = folium.GeoJson(
+      bgs,
+      style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
+      popup=folium.GeoJsonPopup(fields=['BLKGRPCE', ejvar])
+      ).add_to(m) 
     for marker in st.session_state["markers"]:
       m.add_child(marker)
-
-    #Draw(export=True).add_to(m)
 
     out = st_folium(
       m,
@@ -135,9 +158,19 @@ def main():
       returned_objects=[]
     )
 
-  with c3:
-    st.markdown("# EJ Variables")
-    #if st.session_state["bg_data"] is not None:
-    st.bar_chart(bg_data.sort_values(by=[ejvar], ascending=False)[[ejvar]])
+  @st.cache_data
+  def get_metadata():
+    columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
+    return columns
+  columns = get_metadata()
+  columns = columns.loc[columns["GDB Fieldname"].isin(options)][["GDB Fieldname", "Description"]]
+
+  st.markdown("""#### What does each EJ measure mean?
+  Please refer to the metadata below:
+  """)
+  st.write(columns)
+
 if __name__ == "__main__":
   main()
+
+
