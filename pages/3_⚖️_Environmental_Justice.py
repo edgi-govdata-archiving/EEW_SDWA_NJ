@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -14,11 +13,6 @@ import json
 import requests, zipfile, io
 
 st.set_page_config(layout="wide")
-
-previous = st.button("Previous: Safe Drinking Water Act Violations")
-if previous:
-    switch_page("sdwa violations")
-
 st.markdown("""
 # How do SDWA Violations affect Environmental Justice (EJ) in this Place?
 Here you can explore socio-economic demographics and pollution exposures recorded for the place you drew a box around
@@ -179,6 +173,4 @@ def main():
 if __name__ == "__main__":
   main()
 
-next = st.button("Next: Lead Service Lines")
-if next:
-    switch_page("lead service lines")
+

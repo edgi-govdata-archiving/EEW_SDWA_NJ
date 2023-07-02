@@ -4,18 +4,12 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
 from folium.plugins import Draw
 
 st.set_page_config(layout="wide")
-
-previous = st.button("Previous: Statewide Overview")
-if previous:
-    switch_page("statewide overview")
-
 st.markdown(""" # Search for Public Water Systems and Find Violations
 Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
 
@@ -153,7 +147,3 @@ def main():
 
 if __name__ == "__main__":
   main()
-
-next = st.button("Next: Environmental Justice")
-if next:
-    switch_page("environmental justice")
