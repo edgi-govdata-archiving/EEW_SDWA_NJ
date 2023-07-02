@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -15,10 +14,10 @@ import requests, zipfile, io
 
 st.set_page_config(layout="wide")
 #st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
-
-previous = st.button("Previous: Welcome")
-if previous:
-    switch_page("welcome")
+st.markdown(f'''
+<a href="/"><button>Previous: Welcome</button></a>
+''',
+unsafe_allow_html=True)
 
 st.markdown("""
 # What are the Public Water Systems of New Jersey?
@@ -115,6 +114,7 @@ with c2:
   st.dataframe(st.session_state["sdwa"].groupby(by=p)[[p]].count())
   st.bar_chart(st.session_state["sdwa"].groupby(by=p)[[p]].count().rename(columns={p:"COUNT"}))
 
-next = st.button("Next: Safe Drinking Water Act Violations")
-if next:
-    switch_page("sdwa violations")
+st.markdown(f'''
+<a href="/SDWA_Violations"><button>Next: SDWA Violations</button></a>
+''',
+unsafe_allow_html=True)

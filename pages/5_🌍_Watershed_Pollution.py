@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -14,11 +13,6 @@ import json
 import requests, zipfile, io
 
 st.set_page_config(layout="wide")
-
-previous = st.button("Previous: Lead Service Lines")
-if previous:
-    switch_page("lead service lines")
-
 st.markdown("""
   # What Pollutants are Allowed to be Released in the Watershed?
 
