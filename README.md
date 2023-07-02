@@ -1,5 +1,5 @@
 # streamlit_test
-An open educational resource developed at the [Environmental Data and Governance Initiative](//envirodatagov.org) for interactive exploration of New Jersey's waters and water pollution. Developed under (todo:funding).
+An open educational resource developed at the [Environmental Data and Governance Initiative](//envirodatagov.org) for interactive exploration of New Jersey's waters and water pollution. Developed under (todo:funding)by (todo:authorship and collaborators).
 
 # Instructions for use
 This project is staged at [https://sdwa-eew.streamlit.app/](https://sdwa-eew.streamlit.app/).
