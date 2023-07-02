@@ -11,11 +11,13 @@ st.markdown("""# Exploring Safe Drinking Water in New Jersey
 This website enables you to explore different aspects of safe drinking water across 
 the state of New Jersey as well as in specific locations within the state.
 
-The Safe Drinking Water Act (SDWA) regulates the provision of drinking water from sources that serve the public
-(i.e. those that serve at least 25 people, so not private wells). The US Environmental Protection Agency (EPA) oversees
+The Safe Drinking Water Act (SDWA) regulates the provision of drinking water from sources that serve the public*
+. The US Environmental Protection Agency (EPA) oversees
 state agencies that enforce regulations about what kinds of contaminants are allowable in drinking water and at
 what concentration.
 """)
+
+st.caption("""*i.e. those that serve at least 25 people, so not private wells""")
 
 st.markdown("""## What You Can Learn Here
 You can explore imporant questions about SDWA in New Jersey on this website, such as:
@@ -29,8 +31,15 @@ You can explore imporant questions about SDWA in New Jersey on this website, suc
 * What kinds of pollutants are permitted to be released in the watershed?
 """)
 
+st.markdown(f'''
+<a href="/Statewide_Overview"><button>Get started!</button></a>
+''',
+unsafe_allow_html=True)
+
 st.markdown("""## How to Use This Website
 (These instructions will be repeated on each page)
+
+**The pages must be completed in order, as each page depends on data from the prior page.**
 
 1. Navigate to the "Statewide Overview" page to see a map of all public water systems in the state of New Jersey, according to the EPA.
 The page may take a minute to load. **You can always come back to this page as you further explore a specific public water system or set of water systems.** You can click on the markers on the map representing each public water system to learn more about it, including its name. You can also use

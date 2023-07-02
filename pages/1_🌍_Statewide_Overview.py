@@ -14,15 +14,21 @@ import requests, zipfile, io
 
 st.set_page_config(layout="wide")
 #st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
-st.markdown("# Statewide Overview of Public Water Systems (PWS)")
+st.markdown(f'''
+<a href="/"><button>Previous: Welcome</button></a>
+''',
+unsafe_allow_html=True)
+
 st.markdown("""
-The page may take a minute to load. 
-You can click on the markers on the map representing each public water system to learn more about it, including its name. 
-You can also use the dropdown menu in the middle of the page to learn more about the different kinds of public water systems including:
-* Where they source their water from
-* The size of water systems (very small to very large)
-* *other aspects to be determined*
+# What are the Public Water Systems of New Jersey?
+## Statewide Overview of Public Water Systems (PWS)""")
+st.markdown("""
+Below, you will find an interactive map of all public water systems* in New Jersey. Click on the circles to see more information.
 """)
+
+st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
+
+st.markdown("***The map might take a minute to load.***")
 
 @st.cache_data
 def get_data(query):
@@ -74,6 +80,29 @@ with c1:
     width=700,
     returned_objects=[]
   )
+  
+st.markdown("""
+  ### Why are there PWS shown outside of New Jersey?
+  That's because EPA doesn't do a great job of tracking facilities. Sometimes, a facility will be listed with a NJ address
+  but it's latitude and longitude actually correspond to somewhere out of state
+""")
+
+st.markdown("""
+
+You can also use the dropdown menu in the middle of the page to learn more about the different kinds of public water systems including:
+* Where they source their water from
+* The size of water systems (very small to very large)
+* *other aspects to be determined*
+""")
+
+st.markdown("""
+  ### :face_with_monocle: What do all the acronyms mean?
+  * GW = Groundwater
+  * SW = Surface water
+  * CWS = Community Water System - year-round service to the same set of people, e.g. municipal drinking water
+  * NTNCWS = Non-Transient, Non-Community Water System - e.g. schools, offices, and hospitals that serve a community but not the same people every day 
+  * TNCWS = Transient non-community water systems - e.g. gas stations and campgrounds that serve transient populations
+""")
 
 with c2:
   st.markdown("## Summary of PWS by Type, Size, and Source")
@@ -85,14 +114,7 @@ with c2:
   st.dataframe(st.session_state["sdwa"].groupby(by=p)[[p]].count())
   st.bar_chart(st.session_state["sdwa"].groupby(by=p)[[p]].count().rename(columns={p:"COUNT"}))
 
-st.markdown("""
-  ### What do all the acronyms mean?
-  * GW = Groundwater
-  * SW = Surface water
-  * CWS = Community Water System - year-round service to the same set of people, e.g. municipal drinking water
-  * NTNCWS = Non-Transient, Non-Community Water System - e.g. schools, offices, and hospitals that serve a community but not the same people every day 
-  * TNCWS = Transient non-community water systems - e.g. gas stations and campgrounds that serve transient populations
-  ### Why are there PWS shown outside of New Jersey?
-  That's because EPA doesn't do a great job of tracking facilities. Sometimes, a facility will be listed with a NJ address
-  but it's latitude and longitude actually correspond to somewhere out of state
-""")
+st.markdown(f'''
+<a href="/SDWA_Violations"><button>Next: SDWA Violations</button></a>
+''',
+unsafe_allow_html=True)
