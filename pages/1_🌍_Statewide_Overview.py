@@ -21,15 +21,14 @@ if previous:
     switch_page("welcome")
 
 st.markdown("""
-# What are the Public Water Systems of New Jersey?
-## Statewide Overview of Public Water Systems (PWS)""")
-st.markdown("""
-Below, you will find an interactive map of all public water systems* in New Jersey. Click on the circles to see more information.
+  # Exploring Safe Drinking Water in New Jersey
+  ## Statewide Overview of Public Water Systems (PWS)
+  The Safe Drinking Water Act (SDWA) regulates the provision of drinking water from sources that serve the public*. The US Environmental Protection Agency (EPA) oversees  state agencies that enforce regulations about what kinds of contaminants are allowable in drinking water and at
+  what concentration.
 """)
 
 st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
 
-st.markdown("***The map might take a minute to load.***")
 
 def main():
   @st.cache_data
@@ -70,6 +69,11 @@ def main():
 
   with c1:
     st.markdown("## Locations of New Jersey's Public Water Systems")
+    st.markdown("""
+    Below, you will find an interactive map of all public water systems in New Jersey. Click on the circles to see more information.
+    """)
+    st.markdown("***The interactive components below might take a minute to load.***")
+
     m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
 
     #add markers
@@ -101,7 +105,6 @@ def main():
       :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
     """)
 
-  
 
   with c2:
     st.markdown("## Summary of Public Water Systems by Type, Size, and Source")
