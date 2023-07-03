@@ -3,6 +3,7 @@
 #https://docs.streamlit.io/library/get-started/create-an-app
 
 import streamlit as st
+from streamlit_extras.switch_page_button import switch_page
 
 st.set_page_config(layout="wide")
 st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
@@ -31,10 +32,9 @@ You can explore imporant questions about SDWA in New Jersey on this website, suc
 * What kinds of pollutants are permitted to be released in the watershed?
 """)
 
-st.markdown(f'''
-<a href="/Statewide_Overview"><button>Get started!</button></a>
-''',
-unsafe_allow_html=True)
+next = st.button("Get Started! >")
+if next:
+    switch_page("statewide overview")
 
 st.markdown("""## How to Use This Website
 (These instructions will be repeated on each page)
