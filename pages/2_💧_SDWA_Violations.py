@@ -149,8 +149,6 @@ def main():
       st.session_state["last_active_drawing"] = None
       out["last_active_drawing"] = None
 
-    
-
 if __name__ == "__main__":
   main()
 
