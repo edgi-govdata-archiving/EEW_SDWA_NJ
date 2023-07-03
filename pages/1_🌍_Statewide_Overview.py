@@ -29,8 +29,6 @@ Below, you will find an interactive map of all public water systems* in New Jers
 
 st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
 
-st.markdown("***The map might take a minute to load.***")
-
 def main():
   @st.cache_data
   def get_data(query):
@@ -69,19 +67,20 @@ def main():
 
   with c1:
     st.markdown("## Locations of PWS")
-    m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
+    with st.spinner(text="Loading interactive map..."):
+      m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
 
-    #add markers
-    for marker in markers:
-      m.add_child(marker)
+      #add markers
+      for marker in markers:
+        m.add_child(marker)
 
-    out = st_folium(
-      m,
-      key="new",
-      height=400,
-      width=700,
-      returned_objects=[]
-    )
+      out = st_folium(
+        m,
+        key="new",
+        height=400,
+        width=700,
+        returned_objects=[]
+      )
     
   st.markdown("""
     ### Why are there PWS shown outside of New Jersey?

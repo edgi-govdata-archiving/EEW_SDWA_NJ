@@ -50,12 +50,13 @@ def get_data_from_ids(table, key, list_of_ids):
   return data
 
 # Reload, but don't map, PWS
-try:
-  sdwa = st.session_state["sdwa"]
-  sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
-except:
-  st.error("### Error: Did you forget to start on the 'Statewide Overview' page?")
-  st.stop()
+with st.spinner(text="Loading data..."):
+  try:
+    sdwa = st.session_state["sdwa"]
+    sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+  except:
+    st.error("### Error: Did you forget to start on the 'Statewide Overview' page?")
+    st.stop()
 
 # Streamlit section
 # Map
@@ -72,43 +73,43 @@ def main():
   c1, c2, c3 = st.columns(3)
 
   with c1:
-    
-    m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
-    if st.session_state["bounds"]:
-      m.fit_bounds(st.session_state["bounds"])
-    fg = folium.FeatureGroup()
+    with st.spinner(text="Loading interactive map..."):
+      m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
+      if st.session_state["bounds"]:
+        m.fit_bounds(st.session_state["bounds"])
+      fg = folium.FeatureGroup()
 
-    Draw(
-      export=False,
-      draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
-      edit_options=None
-    ).add_to(m)
+      Draw(
+        export=False,
+        draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
+        edit_options=None
+      ).add_to(m)
 
-    if st.session_state["last_active_drawing"]:
-      geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
-      fg.add_child(geo_j)
-    for marker in st.session_state["markers"]:
-      fg.add_child(marker)
+      if st.session_state["last_active_drawing"]:
+        geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
+        fg.add_child(geo_j)
+      for marker in st.session_state["markers"]:
+        fg.add_child(marker)
 
-    out = st_folium(
-      m,
-      key="new",
-      feature_group_to_add=fg,
-      height=400,
-      width=700,
-      returned_objects=["last_active_drawing"]
-    )
-  # Manipulate data
-  try:
-    counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
-    counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
-    counts = counts.sort_values(by="COUNT", ascending=False)
-    violation_type = st.session_state["data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
-    violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
-    violation_type = violation_type.sort_values(by="COUNT", ascending=False)
-  except:
-    counts = []
-    violation_type = []
+      out = st_folium(
+        m,
+        key="new",
+        feature_group_to_add=fg,
+        height=400,
+        width=700,
+        returned_objects=["last_active_drawing"]
+      )
+    # Manipulate data
+    try:
+      counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
+      counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
+      counts = counts.sort_values(by="COUNT", ascending=False)
+      violation_type = st.session_state["data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
+      violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
+      violation_type = violation_type.sort_values(by="COUNT", ascending=False)
+    except:
+      counts = []
+      violation_type = []
 
   with c2:
     st.markdown("# SDWA Violations by PWS")
