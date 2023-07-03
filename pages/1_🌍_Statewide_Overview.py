@@ -63,10 +63,11 @@ if "markers" not in st.session_state:
 if "last_active_drawing" not in st.session_state:
   st.session_state["last_active_drawing"] = None
 
-c1, c2 = st.columns(2)
+c1 = st.container()
+c2 = st.container()
 
 with c1:
-  st.markdown("## Locations of PWS")
+  st.markdown("## Locations of Public Water Systems")
   m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
 
   #add markers
@@ -80,32 +81,33 @@ with c1:
     width=700,
     returned_objects=[]
   )
-  
-st.markdown("""
-  ### Why are there PWS shown outside of New Jersey?
-  That's because EPA doesn't do a great job of tracking facilities. Sometimes, a facility will be listed with a NJ address
-  but it's latitude and longitude actually correspond to somewhere out of state
-""")
+  st.markdown("""
+  ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
+  This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
+  but its latitude and longitude actually correspond to somewhere out of state.
 
-st.markdown("""
+  :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
+  """)
 
-You can also use the dropdown menu in the middle of the page to learn more about the different kinds of public water systems including:
-* Where they source their water from
-* The size of water systems (very small to very large)
-* *other aspects to be determined*
-""")
+  st.markdown("""
+    ### :face_with_monocle: What do all the acronyms mean?
+    * GW = Groundwater
+    * SW = Surface water
+    * CWS = Community Water System - year-round service to the same set of people, e.g. municipal drinking water
+    * NTNCWS = Non-Transient, Non-Community Water System - e.g. schools, offices, and hospitals that serve a community but not the same people every day 
+    * TNCWS = Transient non-community water systems - e.g. gas stations and campgrounds that serve transient populations
+  """)
 
-st.markdown("""
-  ### :face_with_monocle: What do all the acronyms mean?
-  * GW = Groundwater
-  * SW = Surface water
-  * CWS = Community Water System - year-round service to the same set of people, e.g. municipal drinking water
-  * NTNCWS = Non-Transient, Non-Community Water System - e.g. schools, offices, and hospitals that serve a community but not the same people every day 
-  * TNCWS = Transient non-community water systems - e.g. gas stations and campgrounds that serve transient populations
-""")
 
 with c2:
   st.markdown("## Summary of PWS by Type, Size, and Source")
+  st.markdown("""
+
+  You can also use the dropdown menu below to learn more about the different kinds of public water systems including:
+  * Where they source their water from
+  * The size of water systems (very small to very large)
+  * *other aspects to be determined*
+  """)
   p = st.selectbox(
     "PWS?",
     ['PWS_TYPE_CODE', 'SOURCE_WATER', 'SYSTEM_SIZE'],
