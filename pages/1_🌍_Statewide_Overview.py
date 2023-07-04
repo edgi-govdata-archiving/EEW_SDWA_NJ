@@ -93,22 +93,24 @@ def main():
         returned_objects=[]
       )
    
-    
-    st.markdown("""
-      ### :face_with_monocle: What do all the acronyms mean?
-      * GW = Groundwater
-      * SW = Surface water
-      * CWS = Community Water System - year-round service to the same set of people, e.g. municipal drinking water
-      * NTNCWS = Non-Transient, Non-Community Water System - e.g. schools, offices, and hospitals that serve a community but not the same people every day 
-      * TNCWS = Transient non-community water systems - e.g. gas stations and campgrounds that serve transient populations
-    """)
-    
     st.markdown("""
       ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
       This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
       but its latitude and longitude actually correspond to somewhere out of state.
 
       :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
+    """)
+
+    st.markdown("""
+      ### Public Water System (PWS) Type Codes
+
+      | Type | What it means |
+      |------|---------------|
+      | Community Water System | Provides year-round service to the same set of people, e.g. municipal drinking water |
+      | Non-Transient, Non-Community Water System | Services e.g. schools, offices, and hospitals that serve a community but not the same people every day |
+      | Transient Non-Community Water Systems | Services e.g. gas stations and campgrounds that serve transient populations |
+
+      :arrow_right: Why would the EPA designate water systems in this way? Are they regulated differently?
     """)
 
 
