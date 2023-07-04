@@ -29,7 +29,6 @@ st.markdown("""
 
 st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
 
-
 def main():
   @st.cache_data
   def get_data(query):
@@ -73,20 +72,21 @@ def main():
     Below, you will find an interactive map of all public water systems in New Jersey. Click on the circles to see more information.
     """)
     st.markdown("***The interactive components below might take a minute to load.***")
+    with st.spinner(text="Loading interactive map..."):
+      m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
 
-    m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
+      #add markers
+      for marker in markers:
+        m.add_child(marker)
 
-    #add markers
-    for marker in markers:
-      m.add_child(marker)
-
-    out = st_folium(
-      m,
-      key="new",
-      height=400,
-      width=700,
-      returned_objects=[]
-    )
+      out = st_folium(
+        m,
+        key="new",
+        height=400,
+        width=700,
+        returned_objects=[]
+      )
+   
     
     st.markdown("""
       ### :face_with_monocle: What do all the acronyms mean?

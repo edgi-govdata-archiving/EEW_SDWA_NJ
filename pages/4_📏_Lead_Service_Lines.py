@@ -61,27 +61,28 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # Load and join lead/service area data
-service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
-try:
-  location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
-except:
-  st.error("### Error: Did you forget to start on the 'Statewide Overview' page and/or draw a box on the 'SDWA Violations' page?")
-  st.stop()
-# Filter to area
-sas = service_areas[service_areas.geometry.intersects(location.geometry[0]) ] # Service areas in the place
-sas.set_index("PWID", inplace=True)
-# Get lead data
-lead = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
-  dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
-lead = sas.join(lead.set_index("PWSID"))
-lead.set_index("SYS_NAME", inplace=True)
-# Set new bounds
-x1,y1,x2,y2 = lead.geometry.total_bounds
-bounds = [[y1, x1], [y2, x2]]
-# Save data for later
-lead_data = lead
-# Back to features
-lead = json.loads(lead.to_json())
+with st.spinner(text="Loading data..."):
+  service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
+  try:
+    location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
+  except:
+    st.error("### Error: Did you forget to start on the 'Statewide Overview' page and/or draw a box on the 'SDWA Violations' page?")
+    st.stop()
+  # Filter to area
+  sas = service_areas[service_areas.geometry.intersects(location.geometry[0]) ] # Service areas in the place
+  sas.set_index("PWID", inplace=True)
+  # Get lead data
+  lead = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
+    dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
+  lead = sas.join(lead.set_index("PWSID"))
+  lead.set_index("SYS_NAME", inplace=True)
+  # Set new bounds
+  x1,y1,x2,y2 = lead.geometry.total_bounds
+  bounds = [[y1, x1], [y2, x2]]
+  # Save data for later
+  lead_data = lead
+  # Back to features
+  lead = json.loads(lead.to_json())
 
 # Streamlit section
 # Map
@@ -89,33 +90,34 @@ def main():
   c1, c2 = st.columns(2)
 
   with c1:
-    m = folium.Map(tiles="cartodb positron")
-    m.fit_bounds(bounds)
+    with st.spinner(text="Loading interactive map..."):
+      m = folium.Map(tiles="cartodb positron")
+      m.fit_bounds(bounds)
 
-    def style(feature):
-      # choropleth approach
-      # set colorscale
-      colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
-      return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
+      def style(feature):
+        # choropleth approach
+        # set colorscale
+        colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
+        return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
-    fg = folium.FeatureGroup()
-    geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
-    geo_j.add_to(m)
-    gj = folium.GeoJson(
-      lead,
-      style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1},
-      popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
-      ).add_to(m) #.add_to(fg)
-    for marker in st.session_state["markers"]:
-      m.add_child(marker)
+      fg = folium.FeatureGroup()
+      geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
+      geo_j.add_to(m)
+      gj = folium.GeoJson(
+        lead,
+        style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1},
+        popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
+        ).add_to(m) #.add_to(fg)
+      for marker in st.session_state["markers"]:
+        m.add_child(marker)
 
-    out = st_folium(
-      m,
-      key="new",
-      height=400,
-      width=700,
-      returned_objects=[]
-    )
+      out = st_folium(
+        m,
+        key="new",
+        height=400,
+        width=700,
+        returned_objects=[]
+      )
 
   with c2:
     st.markdown("# Count of Lead Service Lines")

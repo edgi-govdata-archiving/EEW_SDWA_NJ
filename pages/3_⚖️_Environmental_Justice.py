@@ -63,12 +63,13 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # Load and join census data
-census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2017/BG/tl_2017_34_bg.zip", name="census") #, projection=4269
-ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
-ej_data["ID"] = ej_data["ID"].astype(str)
-census_data.set_index("GEOID", inplace=True)
-ej_data.set_index("ID", inplace=True)
-census_data = census_data.join(ej_data)
+with st.spinner(text="Loading data..."):
+  census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2017/BG/tl_2017_34_bg.zip", name="census") #, projection=4269
+  ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
+  ej_data["ID"] = ej_data["ID"].astype(str)
+  census_data.set_index("GEOID", inplace=True)
+  ej_data.set_index("ID", inplace=True)
+  census_data = census_data.join(ej_data)
 
 # Convert st.session_state["last_active_drawing"]
 try:
@@ -135,34 +136,35 @@ def main():
     st.bar_chart(bg_data.sort_values(by=[ejvar], ascending=False)[[ejvar]])
 
   with c1:
-    m = folium.Map(tiles="cartodb positron")
-    m.fit_bounds(bounds)
+    with st.spinner(text="Loading interactive map..."):
+      m = folium.Map(tiles="cartodb positron")
+      m.fit_bounds(bounds)
 
-    def style(feature):
-      # choropleth approach
-      # set colorscale
-      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].min(), bg_data[ejvar].max()) # 0 - 1? 
-      return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(feature["properties"][ejvar])
+      def style(feature):
+        # choropleth approach
+        # set colorscale
+        colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].min(), bg_data[ejvar].max()) # 0 - 1? 
+        return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(feature["properties"][ejvar])
 
-    fg = folium.FeatureGroup()
-    geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
-    geo_j.add_to(m)
-    gj = folium.GeoJson(
-      bgs,
-      style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-      popup=folium.GeoJsonPopup(fields=['BLKGRPCE', ejvar])
-      ).add_to(m) 
-    for marker in st.session_state["markers"]:
-      m.add_child(marker)
+      fg = folium.FeatureGroup()
+      geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
+      geo_j.add_to(m)
+      gj = folium.GeoJson(
+        bgs,
+        style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
+        popup=folium.GeoJsonPopup(fields=['BLKGRPCE', ejvar])
+        ).add_to(m) 
+      for marker in st.session_state["markers"]:
+        m.add_child(marker)
 
-    out = st_folium(
-      m,
-      key="new",
-      #feature_group_to_add=fg,
-      height=400,
-      width=700,
-      returned_objects=[]
-    )
+      out = st_folium(
+        m,
+        key="new",
+        #feature_group_to_add=fg,
+        height=400,
+        width=700,
+        returned_objects=[]
+      )
 
   @st.cache_data
   def get_metadata():
