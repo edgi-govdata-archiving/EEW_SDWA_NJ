@@ -87,7 +87,8 @@ with st.spinner(text="Loading data..."):
 # Streamlit section
 # Map
 def main():  
-  c1, c2 = st.columns(2)
+  c1 = st.container()
+  c2 = st.container()
 
   with c1:
     with st.spinner(text="Loading interactive map..."):

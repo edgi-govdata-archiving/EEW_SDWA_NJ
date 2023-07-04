@@ -100,7 +100,8 @@ def main():
   if "ejvar" not in st.session_state:
     st.session_state["ejvar"] = None
   
-  c1, c2 = st.columns(2)
+  c1 = st.container()
+  c2 = st.container()
 
   with c2:
     # EJ parameters

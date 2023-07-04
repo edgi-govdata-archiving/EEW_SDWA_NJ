@@ -113,7 +113,9 @@ def main():
   if "echo" not in st.session_state:
     st.session_state["echo"] = []
   
-  c1, c2, c3 = st.columns(3)
+  c1 = st.container()
+  c2 = st.container()
+  c3 = st.container()
 
   with c1:
     with st.spinner(text="Loading interactive map..."):
