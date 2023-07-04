@@ -10,6 +10,7 @@ import geopandas
 import folium
 from folium.plugins import Draw
 import branca
+import altair as alt
 import json
 import requests, zipfile, io
 
@@ -119,8 +120,16 @@ def main():
       ['PWS_TYPE_CODE', 'SOURCE_WATER', 'SYSTEM_SIZE'],
       label_visibility = "hidden"
     )
-    st.dataframe(st.session_state["sdwa"].groupby(by=p)[[p]].count())
-    st.bar_chart(st.session_state["sdwa"].groupby(by=p)[[p]].count().rename(columns={p:"COUNT"}))
+    counts = st.session_state["sdwa"].groupby(by=p)[[p]].count().rename(columns={p:"COUNT"})
+    st.dataframe(counts)
+    counts = counts.rename_axis(p).reset_index()
+    st.altair_chart(
+      alt.Chart(counts).mark_bar().encode(
+        x = alt.X('COUNT'),
+        y = alt.Y(p, axis=alt.Axis(labelLimit = 500), title=None)
+      ),
+    use_container_width=True
+    )
 
 if __name__ == "__main__":
   main()
