@@ -104,8 +104,8 @@ def main():
   c2 = st.container()
 
   with c2:
-    # EJ parameters
-    options = [
+    # EJ parameters we are working with
+    ej_parameters = {
       "MINORPCT",
       "LOWINCPCT",
       "LESSHSPCT",
@@ -127,13 +127,25 @@ def main():
       "OZONE",
       "PM25",
       "UST"
-    ] # list of EJScreen variables that will be selected
+    }
+
+    @st.cache_data
+    def get_metadata():
+      columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
+      return columns
+    columns = get_metadata()
+    columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
+    columns.set_index("Description", inplace = True)
+    ej_dict = columns.to_dict()['GDB Fieldname']
+
+    options = ej_dict.keys() # list of EJScreen variables that will be selected
     st.markdown("# Which EJ measure to explore?")
-    ejvar = st.selectbox(
+    ejdesc = st.selectbox(
       "Which EJ measure to explore?",
       options,
       label_visibility = "hidden"
     )
+    ejvar = ej_dict[ejdesc]
     st.bar_chart(bg_data.sort_values(by=[ejvar], ascending=False)[[ejvar]])
 
   with c1:
@@ -166,18 +178,6 @@ def main():
         width=700,
         returned_objects=[]
       )
-
-  @st.cache_data
-  def get_metadata():
-    columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
-    return columns
-  columns = get_metadata()
-  columns = columns.loc[columns["GDB Fieldname"].isin(options)][["GDB Fieldname", "Description"]]
-
-  st.markdown("""#### What does each EJ measure mean?
-  Please refer to the metadata below:
-  """)
-  st.write(columns)
 
 if __name__ == "__main__":
   main()
