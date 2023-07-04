@@ -74,7 +74,7 @@ def main():
 
   with c1:
     with st.spinner(text="Loading interactive map..."):
-      m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
+      m = folium.Map(location = [40.1538589,-74.2826471], zoom_start = 10, tiles="cartodb positron")
       if st.session_state["bounds"]:
         m.fit_bounds(st.session_state["bounds"])
       fg = folium.FeatureGroup()
