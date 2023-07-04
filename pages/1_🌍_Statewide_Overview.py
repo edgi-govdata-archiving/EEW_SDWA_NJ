@@ -50,7 +50,7 @@ def main():
       ## Convert to circle markers
       sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
       markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-        popup=folium.Popup(mark["PWS_NAME"]+'<br>Source = '+mark["SOURCE_WATER"]+'<br>Size = '+mark["SYSTEM_SIZE"]+'<br>Type = '+mark["PWS_TYPE_CODE"]),
+        popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
         radius=6, fill_color="orange") for index,mark in sdwa.iterrows() if not mark.geometry.is_empty]
 
       return sdwa, markers
@@ -121,18 +121,18 @@ def main():
     * The size of water systems (very small to very large)
     * *other aspects to be determined*
     """)
-    p = st.selectbox(
+    selected_category = st.selectbox(
       "PWS?",
       ['PWS_TYPE_CODE', 'SOURCE_WATER', 'SYSTEM_SIZE'],
       label_visibility = "hidden"
     )
-    counts = st.session_state["sdwa"].groupby(by=p)[[p]].count().rename(columns={p:"COUNT"})
+    counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"COUNT"})
     st.dataframe(counts)
-    counts = counts.rename_axis(p).reset_index()
+    counts = counts.rename_axis(selected_category).reset_index()
     st.altair_chart(
       alt.Chart(counts).mark_bar().encode(
         x = alt.X('COUNT'),
-        y = alt.Y(p, axis=alt.Axis(labelLimit = 500), title=None)
+        y = alt.Y(selected_category, axis=alt.Axis(labelLimit = 500), title=None)
       ),
     use_container_width=True
     )
