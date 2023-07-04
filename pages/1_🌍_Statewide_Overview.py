@@ -71,7 +71,6 @@ def main():
     st.markdown("""
     Below, you will find an interactive map of all public water systems in New Jersey. Click on the circles to see more information.
     """)
-    st.markdown("***The interactive components below might take a minute to load.***")
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
 
