@@ -42,6 +42,12 @@ def main():
 
       # Map all SDWA PWS
       sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
+      # String manipulations to make output more readable
+      sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace('GW', 'Groundwater')
+      sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace('SW', 'Surface water')
+      sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace('NTNCWS', 'Non-Transient, Non-Community Water System')
+      sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace('TNCWS', 'Transient Non-Community Water System')
+      sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace('CWS', 'Community Water System')
       ## Convert to circle markers
       sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
       markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
