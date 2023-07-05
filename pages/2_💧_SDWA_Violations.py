@@ -107,6 +107,8 @@ def main():
       counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
       counts = counts.sort_values(by="COUNT", ascending=False)
       violation_type = st.session_state["data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
+      violation_type.index = violation_type.index.str.replace('Y', 'Yes')
+      violation_type.index = violation_type.index.str.replace('N', 'No')
       violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
       violation_type = violation_type.sort_values(by="COUNT", ascending=False)
     except:
@@ -114,7 +116,7 @@ def main():
       violation_type = []
 
   with c2:
-    st.markdown("# SDWA Violations by PWS")
+    st.markdown("# Safe Drinking Water Act (SDWA) Violations by Public Water Systems")
     st.dataframe(counts) 
     st.bar_chart(counts)
   with c3:

@@ -10,6 +10,7 @@ import geopandas
 import folium
 from folium.plugins import Draw
 import branca
+import altair as alt
 import json
 import requests, zipfile, io
 
@@ -40,10 +41,26 @@ def main():
 
       # Map all SDWA PWS
       sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
+      # String manipulations to make output more readable
+      source_acronym_dict = {
+        'GW': 'Groundwater',
+        'SW': 'Surface water'
+        }
+      for key, value in source_acronym_dict.items():
+        sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
+
+      type_acronym_dict = {
+        'NTNCWS': 'Non-Transient, Non-Community Water System',
+        'TNCWS': 'Transient Non-Community Water System',
+        'CWS': 'Community Water System'
+      }
+      for key, value in type_acronym_dict.items():
+        sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
+
       ## Convert to circle markers
       sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
       markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-        popup=folium.Popup(mark["PWS_NAME"]+'<br>Source = '+mark["SOURCE_WATER"]+'<br>Size = '+mark["SYSTEM_SIZE"]+'<br>Type = '+mark["PWS_TYPE_CODE"]),
+        popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
         radius=6, fill_color="orange") for index,mark in sdwa.iterrows() if not mark.geometry.is_empty]
 
       return sdwa, markers
@@ -86,22 +103,24 @@ def main():
         returned_objects=[]
       )
    
-    
-    st.markdown("""
-      ### :face_with_monocle: What do all the acronyms mean?
-      * GW = Groundwater
-      * SW = Surface water
-      * CWS = Community Water System - year-round service to the same set of people, e.g. municipal drinking water
-      * NTNCWS = Non-Transient, Non-Community Water System - e.g. schools, offices, and hospitals that serve a community but not the same people every day 
-      * TNCWS = Transient non-community water systems - e.g. gas stations and campgrounds that serve transient populations
-    """)
-    
     st.markdown("""
       ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
       This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
       but its latitude and longitude actually correspond to somewhere out of state.
 
       :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
+    """)
+
+    st.markdown("""
+      ### Public Water System (PWS) Type Codes
+
+      | Type | What it means |
+      |------|---------------|
+      | Community Water System | Provides year-round service to the same set of people, e.g. municipal drinking water |
+      | Non-Transient, Non-Community Water System | Services e.g. schools, offices, and hospitals that serve a community but not the same people every day |
+      | Transient Non-Community Water Systems | Services e.g. gas stations and campgrounds that serve transient populations |
+
+      :arrow_right: Why would the EPA designate water systems in this way? Are they regulated differently?
     """)
 
 
@@ -114,13 +133,22 @@ def main():
     * The size of water systems (very small to very large)
     * *other aspects to be determined*
     """)
-    p = st.selectbox(
+    selected_category = st.selectbox(
       "PWS?",
       ['PWS_TYPE_CODE', 'SOURCE_WATER', 'SYSTEM_SIZE'],
       label_visibility = "hidden"
     )
-    st.dataframe(st.session_state["sdwa"].groupby(by=p)[[p]].count())
-    st.bar_chart(st.session_state["sdwa"].groupby(by=p)[[p]].count().rename(columns={p:"COUNT"}))
+    counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"COUNT"})
+    counts.sort_values(by="COUNT",ascending=False, inplace=True) # Sort table by selected_category
+    st.dataframe(counts)
+    counts = counts.rename_axis(selected_category).reset_index()
+    st.altair_chart(
+      alt.Chart(counts).mark_bar().encode(
+        x = alt.X('COUNT'),
+        y = alt.Y(selected_category, axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
+      ),
+    use_container_width=True
+    )
 
 if __name__ == "__main__":
   main()
