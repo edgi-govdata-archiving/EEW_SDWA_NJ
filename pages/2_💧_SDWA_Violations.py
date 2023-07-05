@@ -77,30 +77,33 @@ def main():
   with c1:
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(location = [40.1538589,-74.2826471], zoom_start = 10, tiles="cartodb positron")
-      if st.session_state["bounds"]:
-        m.fit_bounds(st.session_state["bounds"])
-      fg = folium.FeatureGroup()
+
+      fg = folium.FeatureGroup() #initialize map items
 
       Draw(
         export=False,
         draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
-        edit_options=None
+        edit_options={"edit": False, "remove": False}
       ).add_to(m)
 
       if st.session_state["last_active_drawing"]:
         geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
-        fg.add_child(geo_j)
+        geo_j.add_to(m)
       for marker in st.session_state["markers"]:
-        fg.add_child(marker)
+        m.add_child(marker)
+
+      if st.session_state["bounds"]:
+        m.fit_bounds(st.session_state["bounds"])
 
       out = st_folium(
         m,
         key="new",
-        feature_group_to_add=fg,
+        #feature_group_to_add=fg,
         height=400,
         width=700,
         returned_objects=["last_active_drawing"]
       )
+
     # Manipulate data
     try:
       counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
