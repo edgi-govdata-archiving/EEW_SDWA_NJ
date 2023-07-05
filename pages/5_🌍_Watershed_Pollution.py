@@ -10,6 +10,7 @@ import geopandas
 import folium
 from folium.plugins import Draw
 import branca
+import altair as alt
 import json
 import requests, zipfile, io
 
@@ -144,6 +145,14 @@ def main():
   with c2:
     st.markdown("# Most Reported Pollutants")
     st.dataframe(top_pollutants)
+    # top_pollutants = top_pollutants.rename_axis('PARAMETER_DESC').reset_index()
+    # st.altair_chart(
+    #   alt.Chart(counts, title = 'Number of Facilities Reporting Specific Pollutants in Selected Area').mark_bar().encode(
+    #     x = alt.X("# of facilities", title = "Number of facilities reporting pollutant in selected area"),
+    #     y = alt.Y('PARAMETER_DESC', axis=alt.Axis(labelLimit = 500), title=None)
+    #   ),
+    # use_container_width=True
+    # )
     st.bar_chart(top_pollutants)
 
   with c3:

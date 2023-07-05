@@ -10,6 +10,7 @@ import geopandas
 import folium
 from folium.plugins import Draw
 import branca
+import altair as alt
 import json
 import requests, zipfile, io
 
@@ -122,7 +123,16 @@ def main():
 
   with c2:
     st.markdown("# Count of Lead Service Lines")
-    st.bar_chart(lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]])
+    counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
+    st.dataframe(counts)
+    counts = counts.rename_axis('SYS_NAME').reset_index()
+    st.altair_chart(
+      alt.Chart(counts, title = 'Number of Lead Service Lines per Public Water System in Selected Area').mark_bar().encode(
+        x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
+        y = alt.Y('SYS_NAME', axis=alt.Axis(labelLimit = 500), title=None)
+      ),
+    use_container_width=True
+    )
 
   st.markdown("""
     ### Where do these data come from?
