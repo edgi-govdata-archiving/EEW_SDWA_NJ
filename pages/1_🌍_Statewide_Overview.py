@@ -139,12 +139,13 @@ def main():
       label_visibility = "hidden"
     )
     counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"COUNT"})
+    counts.sort_values(by="COUNT",ascending=False, inplace=True) # Sort table by selected_category
     st.dataframe(counts)
     counts = counts.rename_axis(selected_category).reset_index()
     st.altair_chart(
       alt.Chart(counts).mark_bar().encode(
         x = alt.X('COUNT'),
-        y = alt.Y(selected_category, axis=alt.Axis(labelLimit = 500), title=None)
+        y = alt.Y(selected_category, axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True
     )
