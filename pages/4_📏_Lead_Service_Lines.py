@@ -134,10 +134,18 @@ def main():
     use_container_width=True
     )
 
-  st.markdown("""
-    ### Where do these data come from?
-    They were compiled from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
+  st.caption("""
+    Data compiled from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
   """)
+  
+  st.markdown("""
+      ### :face_with_monocle: How can we understand these numbers?
+      This data is difficult to present in a way that's easy to intuitively grasp, because although the database gives us the *number* of lead service lines, it doesn't help us understand *who is impacted* or *how likely a given tap in that water system is* to have some lead in the water.
+      
+      A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people live in a given unit. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but we don't know how evenly distributed those lead lines are among the population. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)
+
+      :arrow_right: How might this kind of data imprecision intersect with environmental justice? For example, are there demographics that are more likely to have more people in a given household? Is there any way to tell if those same demographics are more or less likely than other parts of the population to have lead service lines?
+    """)
 if __name__ == "__main__":
   main()
 
