@@ -157,11 +157,14 @@ def main():
 
         | Size Classification | Population Range Served |
         |------|---------------|
-        | Large | > 50,000 |
-        | Medium | 3,301 - 50,000 |
-        | Small | < 3,301 |
+        | Very Small | 500 or less |
+        | Small | 501 - 3,300 |
+        | Medium | 3,301 - 10,000 |
+        | Large | 10,001 - 100,00 |
+        | Very Large | Greater than 100,000 |
 
       """)
+  st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
 
 if __name__ == "__main__":
   main()
