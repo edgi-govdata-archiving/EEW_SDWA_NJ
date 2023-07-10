@@ -17,15 +17,14 @@ if previous:
     switch_page("statewide overview")
 
 st.markdown(""" # Search for Public Water Systems and Find Violations
+
+## *Select an area on the interactive map below in order to proceed*
+
 Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
-
-*Important: your box should be fairly small, so that you are focused on a specific community or region, otherwise you'll get an error message.
-If that happens, just draw a smaller box and try again.*
-
-After you draw the box, the page will load any public water systems within it as well as details about any violations of SDWA they may have
+After you draw the box, the map will show any public water systems within it, and the lower part of the page will give details about any violations of SDWA they may have
 recorded since 2001.
 
-Later, if you wish to expand your search or narrow it, you can come back to this page and draw a different box.
+The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and draw a different box.
 """)
 
 @st.cache_data
@@ -55,7 +54,7 @@ with st.spinner(text="Loading data..."):
     sdwa = st.session_state["sdwa"]
     sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   except:
-    st.error("### Error: Did you forget to start on the 'Statewide Overview' page?")
+    st.error("### Error: Please start on the 'Statewide Overview' page.")
     st.stop()
 
 # Streamlit section
@@ -75,6 +74,7 @@ def main():
   c3 = st.container()
 
   with c1:
+
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(location = [40.1538589,-74.2826471], zoom_start = 10, tiles="cartodb positron")
 
@@ -119,11 +119,11 @@ def main():
       violation_type = []
 
   with c2:
-    st.markdown("# Safe Drinking Water Act (SDWA) Violations by Public Water Systems")
+    st.markdown("# Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area")
     st.dataframe(counts) 
     st.bar_chart(counts)
   with c3:
-    st.markdown("# Health-Based Violations")
+    st.markdown("# Health-Based Violations in Selected Area")
     st.dataframe(violation_type)
     st.bar_chart(violation_type)
   
