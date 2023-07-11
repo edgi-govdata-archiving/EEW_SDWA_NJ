@@ -102,7 +102,6 @@ def main():
         colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
         return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
-      fg = folium.FeatureGroup()
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
@@ -115,9 +114,6 @@ def main():
 
       out = st_folium(
         m,
-        key="new",
-        height=400,
-        width=700,
         returned_objects=[]
       )
 
