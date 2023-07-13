@@ -143,7 +143,7 @@ def main():
                 """)
     counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
     counts = counts.rename_axis('System Name') # Rename SYS_NAME to be pretty
-    st.dataframe(counts) # show table
+    #st.dataframe(counts) # show table
     counts = counts.reset_index() # prepare the table for charting
     st.altair_chart(
       alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
@@ -158,7 +158,7 @@ def main():
   """)
   
   st.markdown("""
-      ### :face_with_monocle: How can we understand these numbers?
+      ### :face_with_monocle: How should we understand these numbers?
       This data is difficult to present in a way that's easy to intuitively grasp, because although the database gives us the *number* of lead service lines, it doesn't help us understand *who is impacted* or *how likely a given tap in that water system is* to have some lead in the water.
       
       A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people are served by each line. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but that assumes each person has their own service line, lead or otherwise. In reality, it is households/buildings that receive service lines, and these may serve 0 to 100s of people. In theory, those 2,000 lead lines could serve all 40,000 residents - but we just don't have that granular level of information. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)

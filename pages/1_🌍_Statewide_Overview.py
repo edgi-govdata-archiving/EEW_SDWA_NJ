@@ -152,20 +152,20 @@ def main():
     You can also use the dropdown menu below to learn more about the different kinds of public water systems including:
     * Where they source their water from
     * The size of water systems (very small to very large)
-    * *other aspects to be determined*
+    * The type of water systems (e.g. institutional ones or community/municipal ones)
     """)
     selected_category = st.selectbox(
       "PWS?",
       ['PWS_TYPE_CODE', 'SOURCE_WATER', 'SYSTEM_SIZE'],
       label_visibility = "hidden"
     )
-    counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"COUNT"})
-    counts.sort_values(by="COUNT",ascending=False, inplace=True) # Sort table by selected_category
-    st.dataframe(counts)
+    counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
+    counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
+    #st.dataframe(counts)
     counts = counts.rename_axis(selected_category).reset_index()
     st.altair_chart(
       alt.Chart(counts).mark_bar().encode(
-        x = alt.X('COUNT'),
+        x = alt.X('Number of Facilities'),
         y = alt.Y(selected_category, axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True

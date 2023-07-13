@@ -21,7 +21,7 @@ if previous:
     switch_page("lead service lines")
 
 st.markdown("""
-  # What Pollutants are Allowed to be Released in the Watershed in the Selected Area?""")
+  # What Pollutants are Allowed to be Released in the Watershed(s) in the Selected Area?""")
 
 st.caption("""
   Remember: if you want to change the boundaries of the selected area, you can always go back to the 
@@ -36,7 +36,9 @@ st.markdown("""
 
   On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.
 
-  The map below shows the watersheds for the place you selected and the industrial facilities within those watershed that reported releasing a selected pollutant. 
+  The map below shows the watersheds for the place you selected and the industrial facilities within those watersheds that reported releasing a selected pollutant. 
+
+  Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged.
 """)
             
 @st.cache_data
@@ -125,16 +127,20 @@ def main():
   c3 = st.container()
 
   with c2:
-    st.markdown("""
-      Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged into the watershed.
-      """)
     pollutant = st.selectbox(
       "Select a pollutant...",
       list(top_pollutants.index),
       label_visibility = "hidden"
     )
-    st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
-    st.bar_chart(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False).reset_index().set_index("FAC_NAME")[["values"]])
+    #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
+    units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
+    st.altair_chart(
+      alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022').mark_bar().encode(
+        x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
+        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
+      ),
+    use_container_width=True
+    )
 
   with c1:
     with st.spinner(text="Loading interactive map..."):
@@ -168,19 +174,19 @@ def main():
 
   with c3:
     st.markdown("""
-      # Most Frequently Reported Pollutants in Watershed
+      # Most Frequently Reported Pollutants in Watershed(s)
       """)
   
-    st.dataframe(top_pollutants)
-    # top_pollutants = top_pollutants.rename_axis('PARAMETER_DESC').reset_index()
-    # st.altair_chart(
-    #   alt.Chart(counts, title = 'Number of Facilities Reporting Specific Pollutants in Selected Area').mark_bar().encode(
-    #     x = alt.X("# of facilities", title = "Number of facilities reporting pollutant in selected area"),
-    #     y = alt.Y('PARAMETER_DESC', axis=alt.Axis(labelLimit = 500), title=None)
-    #   ),
-    # use_container_width=True
-    # )
-    st.bar_chart(top_pollutants)
+    # st.dataframe(top_pollutants)
+    #top_pollutants = 
+    st.altair_chart(
+      alt.Chart(top_pollutants.rename_axis('Pollutant').reset_index(), title = 'Number of Facilities Reporting Specific Pollutants in Selected Area').mark_bar().encode(
+        x = alt.X("# of facilities", title = "Number of facilities reporting pollutant in selected area"),
+        y = alt.Y('Pollutant', axis=alt.Axis(labelLimit = 500), title=None).sort('-x')
+      ),
+     use_container_width=True
+    )
+    #st.bar_chart(top_pollutants)
 
 if __name__ == "__main__":
   main()
