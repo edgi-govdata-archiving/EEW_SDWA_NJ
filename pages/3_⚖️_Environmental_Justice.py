@@ -159,7 +159,6 @@ def main():
         colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].min(), bg_data[ejvar].max()) # 0 - 1? 
         return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(feature["properties"][ejvar])
 
-      fg = folium.FeatureGroup()
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
@@ -172,10 +171,6 @@ def main():
 
       out = st_folium(
         m,
-        key="new",
-        #feature_group_to_add=fg,
-        height=400,
-        width=700,
         returned_objects=[]
       )
 
