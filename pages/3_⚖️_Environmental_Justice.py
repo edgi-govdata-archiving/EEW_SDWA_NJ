@@ -20,16 +20,26 @@ if previous:
     switch_page("sdwa violations")
 
 st.markdown("""
-# How do SDWA Violations affect Environmental Justice (EJ) in this Place?
+# How do SDWA Violations affect Environmental Justice (EJ) in the Selected Area?
 Here you can explore socio-economic demographics and pollution exposures recorded for the place you drew a box around
 on the previous page. Does this place experience environmental marginalization in terms of high exposures to lead, traffic exhaust,
-and so on? Is it socially marginalized in terms of race, income, or age? 
+and so on? Is it socially marginalized in terms of race, income, or age?
+""")
 
-Remember: if you want to explore somewhere else or change the boundaries, you can always go back to the 
+st.caption("""
+  Remember: if you want to change the boundaries of the selected area, you can always go back to the 
 "Statewide Violations" page and do so, then return here.
+""")
 
-Use the dropdown menu to select an EJ measure. The map will change to show each of the Census block groups in the place and
-the recorded value for the measure there. The data come from EPA's EJScreen tool.
+redraw = st.button("< Return to SDWA Violations to change selected area")
+if redraw:
+    switch_page("SDWA Violations")
+
+st.markdown("""
+## Select an Environmental Justice measure below
+
+Use the dropdown menu to select an EJ measure. The map will change to show each of the Census block groups that are at least partly in the selected area, and
+the recorded value for the EJ measure there. The data come from EPA's EJScreen tool.
 
 *Important: any percentages shown here are shown as decimals. For instance, 80% is shown as .8*
 
@@ -75,7 +85,7 @@ with st.spinner(text="Loading data..."):
 try:
   location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
 except:
-  st.error("### Error: Did you forget to start on the 'Statewide Overview' page and/or draw a box on the 'SDWA Violations' page?")
+  st.error("### Error: You must start on the 'Statewide Overview' page and draw a box on the 'SDWA Violations' page in order to proceed.")
   st.stop()
 # Filter to area
 bgs = census_data[census_data.geometry.intersects(location.geometry[0]) ] # Block groups in the area around the clicked point

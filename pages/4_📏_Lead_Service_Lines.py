@@ -22,16 +22,28 @@ if previous:
 
 st.markdown("""
   # Lead Service Lines by Purveyor Service Area
-  In New Jersey, there are some public water systems that serve
-  municipalities as their community drinking water supply.
+ """)
 
-  For instance, the City of Vineland has a water utility that provides drinking water to residents
+st.caption("""
+  Remember: if you want to change the boundaries of the selected area, you can always go back to the 
+"Statewide Violations" page and do so, then return here.
+""")
+
+redraw = st.button("< Return to SDWA Violations to change selected area")
+if redraw:
+    switch_page("SDWA Violations")
+
+st.markdown("""
+  In New Jersey, there are some public water systems that serve
+  municipalities as their community drinking water supply. For instance, the City of Vineland has a water utility that provides drinking water to residents
   of the area.
 
-  On this page, we map out of the "Purveyor Service Areas" that fall within the boundaries of the box you previously drew. 
-
-  Then, we show how many lead service lines these utilities have reported within their service areas. A lead service line
-  is a pipe that goes from the utility's main to a house and is made of lead. There is no known safe amount of lead exposure, so
+  On this page, we map out the "Purveyor Service Areas" in the area you have selected. Then, we show how many lead service lines these utilities have reported within their service areas.
+  
+  A lead service line
+  is a pipe that goes from the utility's main to a house and is made of lead.
+  
+  There is no known safe amount of lead exposure, so
   lead service lines may pose a risk to residents' well-being. 
 
   The darker the shade of blue, the more lead lines are reported in the area.
@@ -92,6 +104,10 @@ def main():
   c2 = st.container()
 
   with c1:
+    st.markdown("""
+      # Map of Purveyor Service Areas in Selected Area
+    """)
+
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)

@@ -21,7 +21,18 @@ if previous:
     switch_page("lead service lines")
 
 st.markdown("""
-  # What Pollutants are Allowed to be Released in the Watershed?
+  # What Pollutants are Allowed to be Released in the Watershed in the Selected Area?""")
+
+st.caption("""
+  Remember: if you want to change the boundaries of the selected area, you can always go back to the 
+"Statewide Violations" page and do so, then return here.
+""")
+
+redraw = st.button("< Return to SDWA Violations to change selected area")
+if redraw:
+    switch_page("SDWA Violations")
+
+st.markdown("""
 
   On this page, you can explore what pollutants that industrial facilities reported releasing into the watershed in 2022.
 
