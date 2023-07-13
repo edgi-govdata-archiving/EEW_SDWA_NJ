@@ -19,13 +19,13 @@ if previous:
 
 st.markdown(""" # Search for Public Water Systems and Find Violations
 
-## *Select an area on the interactive map below in order to proceed*
+  ### Select an area on the interactive map below in order to proceed.
 
-Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
-After you draw the box, the map will show any public water systems within it, and the lower part of the page will give details about any violations of SDWA they may have
-recorded since 2001.
+  Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
+  After you draw the box, the map will show any public water systems within it, and the lower part of the page will give details about any violations of SDWA they may have
+  recorded since 2001.
 
-The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and draw a different box.
+  The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and draw a different box.
 """)
 
 @st.cache_data

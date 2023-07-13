@@ -38,7 +38,7 @@ if redraw:
 st.markdown("""
 ## Select an Environmental Justice measure below
 
-Use the dropdown menu to select an EJ measure. The map will change to show each of the Census block groups that are at least partly in the selected area, and
+Use the dropdown menu below to select an EJ measure to study. The map will change to show each of the Census block groups that are at least partly in the selected area, and
 the recorded value for the EJ measure there. The data come from EPA's EJScreen tool.
 
 *Important: any percentages shown here are shown as decimals. For instance, 80% is shown as .8*

@@ -38,16 +38,12 @@ st.markdown("""
   municipalities as their community drinking water supply. For instance, the City of Vineland has a water utility that provides drinking water to residents
   of the area.
 
-  On this page, we map out the "Purveyor Service Areas" in the area you have selected. Then, we show how many lead service lines these utilities have reported within their service areas.
-  
-  A lead service line
-  is a pipe that goes from the utility's main to a house and is made of lead.
+  A lead service line is a pipe that goes from the utility's main to a house and is made of lead. On this page, we map out the "Purveyor Service Areas" in the area you have selected. Then, we show how many lead service lines these utilities have reported within their service areas.
   
   There is no known safe amount of lead exposure, so
   lead service lines may pose a risk to residents' well-being. 
 
-  The darker the shade of blue, the more lead lines are reported in the area.
-""")
+  """)
 
 @st.cache_data
 def add_spatial_data(url, name, projection=4326):
@@ -106,6 +102,7 @@ def main():
   with c1:
     st.markdown("""
       # Map of Purveyor Service Areas in Selected Area
+      On the map below, the darker the shade of blue, the more lead lines are reported in the area.
     """)
 
     with st.spinner(text="Loading interactive map..."):
@@ -157,6 +154,8 @@ def main():
       A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people live in a given unit. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but we don't know how evenly distributed those lead lines are among the population. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)
 
       :arrow_right: How might this kind of data imprecision intersect with environmental justice? For example, are there demographics that are more likely to have more people in a given household? Is there any way to tell if those same demographics are more or less likely than other parts of the population to have lead service lines?
+              
+      :arrow_right: In some selected areas, you may see that some Public Water Systems report "0" and others fail to report ("None" in the table). These are not the same! "None" means that the report is missing. We don't know how many lead service lines there are in that area. Notice that these water systems are missing from the graph. What might be a good way to visualize this missing data?
     """)
 if __name__ == "__main__":
   main()
