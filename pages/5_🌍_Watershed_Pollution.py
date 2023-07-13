@@ -21,14 +21,25 @@ if previous:
     switch_page("lead service lines")
 
 st.markdown("""
-  # What Pollutants are Allowed to be Released in the Watershed?
+  # What Pollutants are Allowed to be Released in the Watershed in the Selected Area?""")
 
-  On this page, you can explore what pollutants that industrial facilities reported releasing into the watershed in 2022.
-
-  We will show you the watershed in the middle of the place you selected, the industrial facilities within that watershed, and how many 
-  of those facilities reported releasing different kinds of pollutants. Use the dropdown menu to select different pollutants and see how 
-  *much* reporting facilities said they discharged into the watershed.
+st.caption("""
+  Remember: if you want to change the boundaries of the selected area, you can always go back to the 
+"Statewide Violations" page and do so, then return here.
 """)
+
+redraw = st.button("< Return to SDWA Violations to change selected area")
+if redraw:
+    switch_page("SDWA Violations")
+
+st.markdown("""
+
+  On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.
+
+  The map below shows the watershed in the middle of the place you selected, the industrial facilities within that watershed, and how many 
+  of those facilities reported releasing different kinds of pollutants.
+""")
+            
 @st.cache_data
 def get_data(query):
   try:
@@ -115,7 +126,11 @@ def main():
   c3 = st.container()
 
   with c3:
-    st.markdown("# Top Pollutors")
+    st.markdown("""
+      # Top Pollutors of Selected Pollutant in Watershed
+                
+      Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged into the watershed.
+      """)
     pollutant = st.selectbox(
       "Select a pollutant...",
       list(top_pollutants.index),
@@ -155,7 +170,10 @@ def main():
       )
 
   with c2:
-    st.markdown("# Most Reported Pollutants")
+    st.markdown("""
+      # Most Frequently Reported Pollutants in Watershed
+      """)
+  
     st.dataframe(top_pollutants)
     # top_pollutants = top_pollutants.rename_axis('PARAMETER_DESC').reset_index()
     # st.altair_chart(

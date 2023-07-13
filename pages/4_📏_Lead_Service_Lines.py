@@ -22,20 +22,28 @@ if previous:
 
 st.markdown("""
   # Lead Service Lines by Purveyor Service Area
-  In New Jersey, there are some public water systems that serve
-  municipalities as their community drinking water supply.
+ """)
 
-  For instance, the City of Vineland has a water utility that provides drinking water to residents
+st.caption("""
+  Remember: if you want to change the boundaries of the selected area, you can always go back to the 
+"Statewide Violations" page and do so, then return here.
+""")
+
+redraw = st.button("< Return to SDWA Violations to change selected area")
+if redraw:
+    switch_page("SDWA Violations")
+
+st.markdown("""
+  In New Jersey, there are some public water systems that serve
+  municipalities as their community drinking water supply. For instance, the City of Vineland has a water utility that provides drinking water to residents
   of the area.
 
-  On this page, we map out of the "Purveyor Service Areas" that fall within the boundaries of the box you previously drew. 
-
-  Then, we show how many lead service lines these utilities have reported within their service areas. A lead service line
-  is a pipe that goes from the utility's main to a house and is made of lead. There is no known safe amount of lead exposure, so
+  A lead service line is a pipe that goes from the utility's main to a house and is made of lead. On this page, we map out the "Purveyor Service Areas" in the area you have selected. Then, we show how many lead service lines these utilities have reported within their service areas.
+  
+  There is no known safe amount of lead exposure, so
   lead service lines may pose a risk to residents' well-being. 
 
-  The darker the shade of blue, the more lead lines are reported in the area.
-""")
+  """)
 
 @st.cache_data
 def add_spatial_data(url, name, projection=4326):
@@ -92,6 +100,16 @@ def main():
   c2 = st.container()
 
   with c1:
+    st.markdown("""
+      # Map of Purveyor Service Areas in Selected Area
+      
+      According to the [New Jersey Department of Environmental Protection](https://geo.btaa.org/catalog/00e7ff046ddb4302abe7b49b2ddee07e_13),
+
+      > Public Community Water Purveyors are systems that pipe water for human consumption to at least 15 service connections used year-round, or one that regularly serves at least 25 year-round residents. Public purveyors can be government agencies, private companies, or quasi-government groups. The boundaries mapped are those of the actual water delivery or service area. Franchise areas are not depicted (areas with legal rights for future service once developed). Water sources (wells or surface water intakes) are often located outside the delivery area boundaries.          
+      
+      The map below shows Purveyor Service Areas colored by the number of lead service lines reported in that area. The darker the shade of blue, the more lead service lines are reported.
+    """)
+
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
@@ -118,22 +136,36 @@ def main():
       )
 
   with c2:
-    st.markdown("# Count of Lead Service Lines")
+    st.markdown("""
+                # Count of Lead Service Lines in Purveyor Service Areas
+
+                Numbers of lead service lines reported in the Purveyor Service Areas that overlap with the selected area:
+                """)
     counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
     st.dataframe(counts)
     counts = counts.rename_axis('SYS_NAME').reset_index()
     st.altair_chart(
-      alt.Chart(counts, title = 'Number of Lead Service Lines per Public Water System in Selected Area').mark_bar().encode(
+      alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
         x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
         y = alt.Y('SYS_NAME', axis=alt.Axis(labelLimit = 500), title=None)
       ),
     use_container_width=True
     )
 
-  st.markdown("""
-    ### Where do these data come from?
-    They were compiled from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
+  st.caption("""
+    Data compiled from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
   """)
+  
+  st.markdown("""
+      ### :face_with_monocle: How can we understand these numbers?
+      This data is difficult to present in a way that's easy to intuitively grasp, because although the database gives us the *number* of lead service lines, it doesn't help us understand *who is impacted* or *how likely a given tap in that water system is* to have some lead in the water.
+      
+      A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people live in a given unit. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but we don't know how evenly distributed those lead lines are among the population. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)
+
+      :arrow_right: How might this kind of data imprecision intersect with environmental justice? For example, are there demographics that are more likely to have more people in a given household? Is there any way to tell if those same demographics are more or less likely than other parts of the population to have lead service lines?
+              
+      :arrow_right: In some selected areas, you may see that some Public Water Systems report "0" and others fail to report ("None" in the table). These are not the same! "None" means that the report is missing. We don't know how many lead service lines there are in that area. Notice that these water systems are missing from the graph. What might be a good way to visualize this missing data?
+    """)
 if __name__ == "__main__":
   main()
 

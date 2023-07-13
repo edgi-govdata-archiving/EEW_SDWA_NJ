@@ -18,15 +18,14 @@ if previous:
     switch_page("statewide overview")
 
 st.markdown(""" # Search for Public Water Systems and Find Violations
-Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
 
-*Important: your box should be fairly small, so that you are focused on a specific community or region, otherwise you'll get an error message.
-If that happens, just draw a smaller box and try again.*
+  ### Select an area on the interactive map below in order to proceed.
 
-After you draw the box, the page will load any public water systems within it as well as details about any violations of SDWA they may have
-recorded since 2001.
+  Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
+  After you draw the box, the map will show any public water systems within it, and the lower part of the page will give details about any violations of SDWA they may have
+  recorded since 2001.
 
-Later, if you wish to expand your search or narrow it, you can come back to this page and draw a different box.
+  The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and draw a different box.
 """)
 
 @st.cache_data
@@ -56,7 +55,7 @@ with st.spinner(text="Loading data..."):
     sdwa = st.session_state["sdwa"]
     sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   except:
-    st.error("### Error: Did you forget to start on the 'Statewide Overview' page?")
+    st.error("### Error: Please start on the 'Statewide Overview' page.")
     st.stop()
 
 # Streamlit section
@@ -76,6 +75,7 @@ def main():
   c3 = st.container()
 
   with c1:
+
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
 
@@ -138,13 +138,29 @@ def main():
       violation_type = []
 
   with c2:
-    st.markdown("# Safe Drinking Water Act (SDWA) Violations by Public Water Systems")
+    st.markdown("""
+      # Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area
+                
+      There are several types of SDWA violation, ranging from "acute health violations" that may immediately cause illness, to failures to monitor, to failures to notify the public, and more.
+      
+      Here, we identify the public water systems in your selected area that have the most overall SDWA violations.
+      """)
     st.dataframe(counts) 
     st.bar_chart(counts)
   with c3:
-    st.markdown("# Health-Based Violations")
+    st.markdown("""
+                # Health-Based Violations in Selected Area
+
+                Some violations are classified as "health-based," meaning that contaminants or disinfectants have been reported in the water above the maximum allowed amounts and may cause health concerns.
+
+                Other violations are classed as more administrative, such as a failure to test the water, or failure to notify the public when a risk to public health has been found.
+
+                :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
+                """)
+    st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
     st.dataframe(violation_type)
     st.bar_chart(violation_type)
+    st.markdown(":face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
   
   if ((out["last_active_drawing"]) 
     and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 

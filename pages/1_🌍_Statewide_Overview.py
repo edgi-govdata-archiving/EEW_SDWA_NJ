@@ -171,6 +171,22 @@ def main():
     use_container_width=True
     )
 
+  st.markdown("""
+        ### Size Classifications of Public Water Systems
+        
+        > Community water systems are further classified as small, medium, or large based on the residential populations that they serve. The size classification of a system will determine the frequency and amount of sampling that is required. Approximately 96% of New Jersey residents are supplied by medium or large community water systems. ([2019 Annual Compliance Report on Public Water Systems, New Jersey Department of Environmental Protection, p. 11](https://www.state.nj.us/dep/watersupply//pdf/violations2019.pdf))
+
+        | Size Classification | Population Range Served |
+        |------|---------------|
+        | Very Small | 500 or less |
+        | Small | 501 - 3,300 |
+        | Medium | 3,301 - 10,000 |
+        | Large | 10,001 - 100,00 |
+        | Very Large | Greater than 100,000 |
+
+      """)
+  st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
+
 if __name__ == "__main__":
   with st.spinner(text="Loading data..."):
     main()
