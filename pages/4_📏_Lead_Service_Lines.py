@@ -102,7 +102,12 @@ def main():
   with c1:
     st.markdown("""
       # Map of Purveyor Service Areas in Selected Area
-      On the map below, the darker the shade of blue, the more lead lines are reported in the area.
+      
+      According to the [New Jersey Department of Environmental Protection](https://geo.btaa.org/catalog/00e7ff046ddb4302abe7b49b2ddee07e_13),
+
+      > Public Community Water Purveyors are systems that pipe water for human consumption to at least 15 service connections used year-round, or one that regularly serves at least 25 year-round residents. Public purveyors can be government agencies, private companies, or quasi-government groups. The boundaries mapped are those of the actual water delivery or service area. Franchise areas are not depicted (areas with legal rights for future service once developed). Water sources (wells or surface water intakes) are often located outside the delivery area boundaries.          
+      
+      The map below shows Purveyor Service Areas colored by the number of lead service lines reported in that area. The darker the shade of blue, the more lead service lines are reported.
     """)
 
     with st.spinner(text="Loading interactive map..."):
@@ -131,12 +136,16 @@ def main():
       )
 
   with c2:
-    st.markdown("# Count of Lead Service Lines")
+    st.markdown("""
+                # Count of Lead Service Lines in Purveyor Service Areas
+
+                Numbers of lead service lines reported in the Purveyor Service Areas that overlap with the selected area:
+                """)
     counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
     st.dataframe(counts)
     counts = counts.rename_axis('SYS_NAME').reset_index()
     st.altair_chart(
-      alt.Chart(counts, title = 'Number of Lead Service Lines per Public Water System in Selected Area').mark_bar().encode(
+      alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
         x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
         y = alt.Y('SYS_NAME', axis=alt.Axis(labelLimit = 500), title=None)
       ),
