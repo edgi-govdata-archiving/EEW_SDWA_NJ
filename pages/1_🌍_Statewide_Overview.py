@@ -172,7 +172,8 @@ def main():
     )
 
 if __name__ == "__main__":
-  main()
+  with st.spinner(text="Loading data..."):
+    main()
 
 next = st.button("Next: Safe Drinking Water Act Violations")
 if next:
