@@ -95,15 +95,6 @@ ej_parameters = {
   #"UST"
 }
 
-@st.cache_data
-def get_metadata():
-  columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
-  return columns
-columns = get_metadata()
-columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
-columns.set_index("Description", inplace = True)
-ej_dict = columns.to_dict()['GDB Fieldname']
-#options = ej_dict.keys() # list of EJScreen variables that will be selected
 ejdefs = {
   "MINORPCT": "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
   "LOWINCPCT": "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
@@ -175,13 +166,12 @@ def main():
   c2 = st.container()
 
   with c2:
-    ejdesc = st.selectbox(
+    ejvar = st.selectbox(
       label = "Which EJ measure shall we explore?",
       options = options,
       format_func = lambda x: x[0:100]+"...", # Only show the first 100 characters of the variable
       label_visibility = "hidden"
     )
-    ejvar = ejdesc #ej_dict[ejdesc]
 
     st.markdown("**EPA defines this as:**")
     st.markdown(ejvar)
