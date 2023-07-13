@@ -149,14 +149,41 @@ def main():
     ej_dict = columns.to_dict()['GDB Fieldname']
 
     options = ej_dict.keys() # list of EJScreen variables that will be selected
-    st.markdown("# Which EJ measure to explore?")
+    st.markdown("# Which EJ measure shall we explore?")
     ejdesc = st.selectbox(
-      "Which EJ measure to explore?",
+      "Which EJ measure shall we explore?",
       options,
       label_visibility = "hidden"
     )
     ejvar = ej_dict[ejdesc]
+    ejdefs = {
+      "MINORPCT": "The percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
+      "LOWINCPCT": "The percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
+      "LESSHSPCT": "Percent of people age 25 or older in a block group whose education is short of a high school diploma.",
+      "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.",
+      "UNDER5PCT": 'Percent of people in a block group under the age of 5.',
+      "OVER64PCT": 'Percent of people in a block group over the age of 64.',
+      "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure",
+      "UNEMPPCT": "The percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).",
+      "VULEOPCT": "Demographic index of block group used by EPA, an average of low income and people of color populations",
+      "DISPEO": "Intermediate variable used for calculation of demographic index",
+      "DSLPM": "Diesel particulate matter level in air, µg/m3",
+      "CANCER": "Lifetime cancer risk from inhalation of air toxics",
+      "RESP": "Ratio of exposure concentration to health-based reference concentration",
+      "PTRAF": "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)",
+      "PWDIS": "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)",
+      "PNPL": "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
+      "PRMP": "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
+      "PTSDF": "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers",
+      "OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
+      "PM25": "PM2.5 levels in air, µg/m3 annual avg.",
+      "UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
+    }
+    st.markdown("**EPA defines this as:**")
+    st.markdown(ejdefs[ejvar])
     st.bar_chart(bg_data.sort_values(by=[ejvar], ascending=False)[[ejvar]])
+    st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
+    st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
   with c1:
     with st.spinner(text="Loading interactive map..."):
