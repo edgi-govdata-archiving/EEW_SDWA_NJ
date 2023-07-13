@@ -158,14 +158,14 @@ def main():
     )
     ejvar = ej_dict[ejdesc]
     ejdefs = {
-      "MINORPCT": "The percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
-      "LOWINCPCT": "The percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
+      "MINORPCT": "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
+      "LOWINCPCT": "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
       "LESSHSPCT": "Percent of people age 25 or older in a block group whose education is short of a high school diploma.",
       "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.",
       "UNDER5PCT": 'Percent of people in a block group under the age of 5.',
       "OVER64PCT": 'Percent of people in a block group over the age of 64.',
       #"PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure",
-      "UNEMPPCT": "The percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).",
+      "UNEMPPCT": "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).",
       #"VULEOPCT": "Demographic index of block group used by EPA, an average of low income and people of color populations",
       #"DISPEO": "Intermediate variable used for calculation of demographic index",
       #"DSLPM": "Diesel particulate matter level in air, µg/m3",
@@ -182,7 +182,6 @@ def main():
     }
     st.markdown("**EPA defines this as:**")
     st.markdown(ejdefs[ejvar])
-    st.bar_chart(bg_data.sort_values(by=[ejvar], ascending=False)[[ejvar]])
     st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
     st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
@@ -202,7 +201,7 @@ def main():
       gj = folium.GeoJson(
         bgs,
         style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=['BLKGRPCE', ejvar])
+        popup=folium.GeoJsonPopup(fields=[ejvar])
         ).add_to(m) 
       for marker in st.session_state["markers"]:
         m.add_child(marker)
