@@ -138,13 +138,29 @@ def main():
       violation_type = []
 
   with c2:
-    st.markdown("# Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area")
+    st.markdown("""
+      # Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area
+                
+      There are several types of SDWA violation, ranging from "acute health violations" that may immediately cause illness, to failures to monitor, to failures to notify the public, and more.
+      
+      Here, we identify the public water systems in your selected area that have the most overall SDWA violations.
+      """)
     st.dataframe(counts) 
     st.bar_chart(counts)
   with c3:
-    st.markdown("# Health-Based Violations in Selected Area")
+    st.markdown("""
+                # Health-Based Violations in Selected Area
+
+                Some violations are classified as "health-based," meaning that contaminants or disinfectants have been reported in the water above the maximum allowed amounts and may cause health concerns.
+
+                Other violations are classed as more administrative, such as a failure to test the water, or failure to notify the public when a risk to public health has been found.
+
+                :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
+                """)
+    st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
     st.dataframe(violation_type)
     st.bar_chart(violation_type)
+    st.markdown(":face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
   
   if ((out["last_active_drawing"]) 
     and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
