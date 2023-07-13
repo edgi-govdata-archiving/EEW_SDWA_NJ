@@ -99,10 +99,6 @@ with st.spinner(text="Loading data..."):
   echo.drop("wkb_geometry", axis=1, inplace=True)
   echo = geopandas.GeoDataFrame(echo, crs=4269)
   echo.set_index("REGISTRY_ID", inplace=True)
-  markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-    popup=f"{mark.FAC_NAME}",
-    radius = 6, fill_color = "orange", weight=1
-    ) for index,mark in echo.iterrows() if not mark.geometry.is_empty]
 
   # Get discharge data based on watershed ids
   sql = 'select * from "DMR_FY2022_MVIEW" where "FAC_DERIVED_WBD" in ({})'.format(ids) 
@@ -129,12 +125,21 @@ def main():
   c2 = st.container()
   c3 = st.container()
 
+  with c3:
+    st.markdown("# Top Pollutors")
+    pollutant = st.selectbox(
+      "Select a pollutant...",
+      list(top_pollutants.index),
+      label_visibility = "hidden"
+    )
+    st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
+    st.bar_chart(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False).reset_index().set_index("FAC_NAME")[["values"]])
+
   with c1:
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles = "cartodb positron")
-      m.fit_bounds(bounds)
-
-      fg = folium.FeatureGroup()
+      
+      #Set watershed
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
@@ -142,14 +147,21 @@ def main():
         style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1},
         popup=folium.GeoJsonPopup(fields=['huc12'])
         ).add_to(m)
+
+      # Set facility markers
+      filtered_data = dmr.loc[dmr["PARAMETER_DESC"] == pollutant]
+      filtered_data = filtered_data.drop_duplicates(subset="EXTERNAL_PERMIT_NMBR")
+      markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
+      popup=f"{mark.FAC_NAME}",
+      radius = 6, fill_color = "orange", weight=1
+      ) for index,mark in filtered_data.iterrows() if not pd.isna(mark["FAC_LAT"])]
       for marker in markers:
         m.add_child(marker)
 
+      m.fit_bounds(bounds)
+
       out = st_folium(
         m,
-        key="new",
-        height=400,
-        width=700,
         returned_objects=[]
       )
 
@@ -165,16 +177,6 @@ def main():
     # use_container_width=True
     # )
     st.bar_chart(top_pollutants)
-
-  with c3:
-    st.markdown("# Top Pollutors")
-    pollutant = st.selectbox(
-      "Select a pollutant...",
-      list(top_pollutants.index),
-      label_visibility = "hidden"
-    )
-    st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
-    st.bar_chart(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False).reset_index().set_index("FAC_NAME")[["values"]])
 
 if __name__ == "__main__":
   main()

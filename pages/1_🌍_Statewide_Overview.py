@@ -48,6 +48,7 @@ def main():
         }
       for key, value in source_acronym_dict.items():
         sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
+      s = {"Groundwater": "3", "Surface water": "0"}
 
       type_acronym_dict = {
         'NTNCWS': 'Non-Transient, Non-Community Water System',
@@ -56,12 +57,16 @@ def main():
       }
       for key, value in type_acronym_dict.items():
         sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
+      t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
+       
+      r = {"Very Small": 2, "Small": 6, "Medium": 12, "Large": 20, "Very Large": 32}
 
       ## Convert to circle markers
       sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+      
       markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
         popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-        radius=6, fill_color="orange") for index,mark in sdwa.iterrows() if not mark.geometry.is_empty]
+        radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], dash_array=s[mark["SOURCE_WATER"]]) for index,mark in sdwa.iterrows() if not mark.geometry.is_empty]
 
       return sdwa, markers
     except:
@@ -88,21 +93,37 @@ def main():
     st.markdown("""
     Below, you will find an interactive map of all public water systems in New Jersey. Click on the circles to see more information.
     """)
-    with st.spinner(text="Loading interactive map..."):
-      m = folium.Map(location = [40.25,-74], zoom_start = 7, tiles="cartodb positron")
+
+    @st.cache_data(experimental_allow_widgets=True)
+    def make_map():
+      m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, tiles="cartodb positron")
 
       #add markers
       for marker in markers:
         m.add_child(marker)
-
       out = st_folium(
         m,
-        key="new",
-        height=400,
-        width=700,
         returned_objects=[]
       )
-   
+
+    col1, col2 = st.columns(2)
+    with col1:
+      with st.spinner(text="Loading interactive map..."):
+        make_map()
+    with col2:
+      st.markdown("""
+      ### Map Legend
+
+      | Feature | What it means |
+      |------|---------------|
+      | Outline - Solid | PWS that draw from surface water |
+      | Outline - Dashed | PWS that draw from groundwater |
+      | Color - Blue | Community Water Systems |
+      | Color - Yellow | Transient Non-Community Water Systems |
+      | Color - Green | Non-Transient, Non-Community Water Systems |
+      | Size | PWS size, from very small to very large |    
+    """)
+
     st.markdown("""
       ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
       This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
@@ -167,7 +188,8 @@ def main():
   st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
 
 if __name__ == "__main__":
-  main()
+  with st.spinner(text="Loading data..."):
+    main()
 
 next = st.button("Next: Safe Drinking Water Act Violations")
 if next:

@@ -2,6 +2,7 @@
 # Pick a place and get ECHO facilities
 #https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
+import json
 import urllib.parse
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
@@ -76,9 +77,7 @@ def main():
   with c1:
 
     with st.spinner(text="Loading interactive map..."):
-      m = folium.Map(location = [40.1538589,-74.2826471], zoom_start = 10, tiles="cartodb positron")
-
-      fg = folium.FeatureGroup() #initialize map items
+      m = folium.Map(tiles="cartodb positron")
 
       Draw(
         export=False,
@@ -86,9 +85,33 @@ def main():
         edit_options={"edit": False, "remove": False}
       ).add_to(m)
 
-      if st.session_state["last_active_drawing"]:
+      if st.session_state["last_active_drawing"] is not None: # user has drawn a box
         geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
         geo_j.add_to(m)
+      else: # default - no box drawn yet
+        # draw box
+        default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+        st.session_state["last_active_drawing"] = default_box["features"][0]
+        # add to map
+        geo_j = folium.GeoJson(data=default_box)
+        geo_j.add_to(m)
+        # set bounds
+        bounds = geopandas.GeoDataFrame.from_features(default_box)
+        bounds.set_crs(4326, inplace=True)
+        x1,y1,x2,y2 = bounds.geometry.total_bounds
+        st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+        # Get PWS
+        these_pws = geopandas.clip(sdwa, bounds.geometry)
+        these_pws = list(these_pws["PWSID"].unique())
+        data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+        st.session_state["data"] = data
+        markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
+          popup = folium.Popup(
+          mark["FAC_NAME"] + "<br>"
+          ), #PWS_NAME
+          radius = 6, fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
+        st.session_state["markers"] = markers
+
       for marker in st.session_state["markers"]:
         m.add_child(marker)
 
@@ -97,10 +120,6 @@ def main():
 
       out = st_folium(
         m,
-        key="new",
-        #feature_group_to_add=fg,
-        height=400,
-        width=700,
         returned_objects=["last_active_drawing"]
       )
 
@@ -132,6 +151,8 @@ def main():
     and (out["last_active_drawing"]["geometry"]["type"] != "Point")
   ):
     st.session_state["last_active_drawing"] = out["last_active_drawing"]
+    print("last active drawing:")
+    print(st.session_state["last_active_drawing"])
     bounds = out["last_active_drawing"]
     bounds = geopandas.GeoDataFrame.from_features([bounds])
     bounds.set_crs(4269, inplace=True)
@@ -151,6 +172,7 @@ def main():
         radius = 6, fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
       st.session_state["markers"] = markers
       st.experimental_rerun()
+
     else:
       with c1:
         st.markdown("### You've drawn a big area! Try drawing a smaller one.")
