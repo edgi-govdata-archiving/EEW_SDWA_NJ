@@ -20,10 +20,10 @@ if previous:
     switch_page("sdwa violations")
 
 st.markdown("""
-# How do SDWA Violations affect Environmental Justice (EJ) in the Selected Area?
-Here you can explore socio-economic demographics and pollution exposures recorded for the place you drew a box around
-on the previous page. Does this place experience environmental marginalization in terms of high exposures to lead, traffic exhaust,
-and so on? Is it socially marginalized in terms of race, income, or age?
+# How do SDWA Violations relate to Environmental Justice (EJ) in the Selected Area?
+Here you can explore socio-economic indicators recorded for the place you drew a box around
+on the previous page, to get a sense of whether the SDWA violations, lead service lines, and watershed pollutants have any
+correlation with neighborhood-level factors such as race, income, age, or education level. 
 """)
 
 st.caption("""
@@ -44,7 +44,7 @@ the recorded value for the EJ measure there. The data come from EPA's EJScreen t
 *Important: any percentages shown here are shown as decimals. For instance, 80% is shown as .8*
 
 On the map, the darker the shade of the blue, 
-the more of the measure - a higher percentage minority population, cancer rate, or number of underground storage tanks, for instance.
+the more of the measure - a higher percentage minority population, for instance.
 
 """)
 
@@ -87,6 +87,7 @@ try:
 except:
   st.error("### Error: You must start on the 'Statewide Overview' page and draw a box on the 'SDWA Violations' page in order to proceed.")
   st.stop()
+
 # Filter to area
 bgs = census_data[census_data.geometry.intersects(location.geometry[0]) ] # Block groups in the area around the clicked point
 bg_data = bgs
@@ -122,21 +123,21 @@ def main():
       "LINGISOPCT",
       "UNDER5PCT",
       "OVER64PCT",
-      "PRE1960PCT",
+      #"PRE1960PCT",
       "UNEMPPCT",
-      "VULEOPCT",
-      "DISPEO",
-      "DSLPM",
-      "CANCER",
-      "RESP",
-      "PTRAF",
-      "PWDIS",
-      "PNPL",
-      "PRMP",
-      "PTSDF",
-      "OZONE",
-      "PM25",
-      "UST"
+      #"VULEOPCT",
+      #"DISPEO",
+      #"DSLPM",
+      #"CANCER",
+      #"RESP",
+      #"PTRAF",
+      #"PWDIS",
+      #"PNPL",
+      #"PRMP",
+      #"PTSDF",
+      #"OZONE",
+      #"PM25",
+      #"UST"
     }
 
     @st.cache_data
@@ -163,21 +164,21 @@ def main():
       "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.",
       "UNDER5PCT": 'Percent of people in a block group under the age of 5.',
       "OVER64PCT": 'Percent of people in a block group over the age of 64.',
-      "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure",
+      #"PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure",
       "UNEMPPCT": "The percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).",
-      "VULEOPCT": "Demographic index of block group used by EPA, an average of low income and people of color populations",
-      "DISPEO": "Intermediate variable used for calculation of demographic index",
-      "DSLPM": "Diesel particulate matter level in air, µg/m3",
-      "CANCER": "Lifetime cancer risk from inhalation of air toxics",
-      "RESP": "Ratio of exposure concentration to health-based reference concentration",
-      "PTRAF": "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)",
-      "PWDIS": "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)",
-      "PNPL": "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
-      "PRMP": "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
-      "PTSDF": "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers",
-      "OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
-      "PM25": "PM2.5 levels in air, µg/m3 annual avg.",
-      "UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
+      #"VULEOPCT": "Demographic index of block group used by EPA, an average of low income and people of color populations",
+      #"DISPEO": "Intermediate variable used for calculation of demographic index",
+      #"DSLPM": "Diesel particulate matter level in air, µg/m3",
+      #"CANCER": "Lifetime cancer risk from inhalation of air toxics",
+      #"RESP": "Ratio of exposure concentration to health-based reference concentration",
+      #"PTRAF": "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)",
+      #"PWDIS": "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)",
+      #"PNPL": "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
+      #"PRMP": "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
+      #"PTSDF": "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers",
+      #"OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
+      #"PM25": "PM2.5 levels in air, µg/m3 annual avg.",
+      #"UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
     }
     st.markdown("**EPA defines this as:**")
     st.markdown(ejdefs[ejvar])

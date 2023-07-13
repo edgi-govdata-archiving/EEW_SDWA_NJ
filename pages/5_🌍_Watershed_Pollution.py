@@ -36,8 +36,7 @@ st.markdown("""
 
   On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.
 
-  The map below shows the watershed in the middle of the place you selected, the industrial facilities within that watershed, and how many 
-  of those facilities reported releasing different kinds of pollutants.
+  The map below shows the watersheds for the place you selected and the industrial facilities within those watershed that reported releasing a selected pollutant. 
 """)
             
 @st.cache_data
@@ -125,10 +124,8 @@ def main():
   c2 = st.container()
   c3 = st.container()
 
-  with c3:
+  with c2:
     st.markdown("""
-      # Top Pollutors of Selected Pollutant in Watershed
-                
       Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged into the watershed.
       """)
     pollutant = st.selectbox(
@@ -169,7 +166,7 @@ def main():
         returned_objects=[]
       )
 
-  with c2:
+  with c3:
     st.markdown("""
       # Most Frequently Reported Pollutants in Watershed
       """)
