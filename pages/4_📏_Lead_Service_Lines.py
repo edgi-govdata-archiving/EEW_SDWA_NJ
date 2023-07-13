@@ -142,12 +142,13 @@ def main():
                 Numbers of lead service lines reported in the Purveyor Service Areas that overlap with the selected area:
                 """)
     counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
-    st.dataframe(counts)
-    counts = counts.rename_axis('SYS_NAME').reset_index()
+    counts = counts.rename_axis('System Name') # Rename SYS_NAME to be pretty
+    st.dataframe(counts) # show table
+    counts = counts.reset_index() # prepare the table for charting
     st.altair_chart(
       alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
         x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
-        y = alt.Y('SYS_NAME', axis=alt.Axis(labelLimit = 500), title=None)
+        y = alt.Y('System Name', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True
     )
