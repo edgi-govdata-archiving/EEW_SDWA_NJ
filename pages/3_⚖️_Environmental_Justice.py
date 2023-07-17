@@ -118,7 +118,7 @@ ejdefs = {
   #"PM25": "PM2.5 levels in air, µg/m3 annual avg.",
   #"UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
 }
-options = ejdefs.values()
+options = ejdefs.keys()
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
@@ -128,19 +128,19 @@ with st.spinner(text="Loading data..."):
   census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
   census_data = census_data.join(ej_data) # join based on this shared id
-  census_data.rename(columns=ejdefs, inplace=True) # rename columns to the EJ variable definitions
-  census_data = census_data[[i for i in ejdefs.values()] + ["geometry"]] # Filter out unnecessary columns
-  census_data[[i for i in ejdefs.values()]] = round(census_data[[i for i in ejdefs.values()]] * 100, 2) # Convert decimal values to percentages
-
+  #census_data.rename(columns=ejdefs, inplace=True) # rename columns to the EJ variable definitions
+  census_data = census_data[[i for i in ejdefs.keys()] + ["geometry"]] # Filter out unnecessary columns
+  census_data[[i for i in ejdefs.keys()]] = round(census_data[[i for i in ejdefs.keys()]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
+  st.write(census_data)
 # Convert st.session_state["last_active_drawing"]
 try:
-  location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
+  location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
 except:
   st.error("### Error: You must start on the 'Statewide Overview' page and draw a box on the 'SDWA Violations' page in order to proceed.")
   st.stop()
 
 # Filter to area
-bgs = census_data[census_data.geometry.intersects(location.geometry[0]) ] # Block groups in the area around the clicked point
+bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
 bg_data = bgs
 # Set new bounds
 x1,y1,x2,y2 = bgs.geometry.total_bounds
@@ -152,7 +152,7 @@ bgs = json.loads(bgs.to_json())
 # Map
 def main():
   if "bounds" not in st.session_state:
-    st.session_state["bounds"] = None # could set initial bounds here
+    st.session_state["bounds"] = None
   if "markers" not in st.session_state:
     st.session_state["markers"] = []
   if "last_active_drawing" not in st.session_state:
@@ -169,12 +169,12 @@ def main():
     ejvar = st.selectbox(
       label = "Which EJ measure shall we explore?",
       options = options,
-      format_func = lambda x: x[0:100]+"...", # Only show the first 100 characters of the variable
+      #format_func = lambda x: x[0:100]+"...", # Only show the first 100 characters of the variable
       label_visibility = "hidden"
     )
 
     st.markdown("**EPA defines this as:**")
-    st.markdown(ejvar)
+    st.markdown(ejdefs[ejvar])
     st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
     st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
@@ -182,19 +182,18 @@ def main():
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
-
       def style(feature):
         # choropleth approach
         # set colorscale
-        colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].min(), bg_data[ejvar].max()) # 0 - 1? 
-        return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(feature["properties"][ejvar])
+        colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].str.strip("%").astype(float).min(), bg_data[ejvar].str.strip("%").astype(float).max()) # 0 - 1? 
+        return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(float(feature["properties"][ejvar].strip("%")))
 
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
-        style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=[ejvar])
+        #style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
+        popup=folium.GeoJsonPopup(fields=[ejvar], style = "<br>")
         ).add_to(m) 
       for marker in st.session_state["markers"]:
         m.add_child(marker)
