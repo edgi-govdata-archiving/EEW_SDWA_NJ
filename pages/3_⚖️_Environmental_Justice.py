@@ -71,30 +71,6 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # EJ parameters we are working with
-ej_parameters = {
-  "MINORPCT",
-  "LOWINCPCT",
-  "LESSHSPCT",
-  "LINGISOPCT",
-  "UNDER5PCT",
-  "OVER64PCT",
-  #"PRE1960PCT",
-  "UNEMPPCT",
-  #"VULEOPCT",
-  #"DISPEO",
-  #"DSLPM",
-  #"CANCER",
-  #"RESP",
-  #"PTRAF",
-  #"PWDIS",
-  #"PNPL",
-  #"PRMP",
-  #"PTSDF",
-  #"OZONE",
-  #"PM25",
-  #"UST"
-}
-
 ejdefs = {
   "MINORPCT": "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
   "LOWINCPCT": "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
@@ -128,10 +104,10 @@ with st.spinner(text="Loading data..."):
   census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
   census_data = census_data.join(ej_data) # join based on this shared id
-  #census_data.rename(columns=ejdefs, inplace=True) # rename columns to the EJ variable definitions
   census_data = census_data[[i for i in ejdefs.keys()] + ["geometry"]] # Filter out unnecessary columns
   census_data[[i for i in ejdefs.keys()]] = round(census_data[[i for i in ejdefs.keys()]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
-  st.write(census_data)
+  census_data[[i for i in ejdefs.keys()]] = census_data[[i for i in ejdefs.keys()]].astype(str) + "%"
+
 # Convert st.session_state["last_active_drawing"]
 try:
   location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
@@ -182,19 +158,20 @@ def main():
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
+      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].str.strip("%").astype(float).min(), bg_data[ejvar].str.strip("%").astype(float).max()) # 0 - 1? 
+      st.write(colorscale)
       def style(feature):
         # choropleth approach
         # set colorscale
-        colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].str.strip("%").astype(float).min(), bg_data[ejvar].str.strip("%").astype(float).max()) # 0 - 1? 
         return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(float(feature["properties"][ejvar].strip("%")))
 
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
-        #style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=[ejvar], style = "<br>")
-        ).add_to(m) 
+        style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
+        popup=folium.GeoJsonPopup(fields=[ejvar])
+      ).add_to(m) 
       for marker in st.session_state["markers"]:
         m.add_child(marker)
 
