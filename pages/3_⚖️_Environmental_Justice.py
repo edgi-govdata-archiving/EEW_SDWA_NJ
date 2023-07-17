@@ -145,7 +145,6 @@ def main():
     ejvar = st.selectbox(
       label = "Which EJ measure shall we explore?",
       options = options,
-      #format_func = lambda x: x[0:100]+"...", # Only show the first 100 characters of the variable
       label_visibility = "hidden"
     )
 

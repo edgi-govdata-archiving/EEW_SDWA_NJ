@@ -113,11 +113,12 @@ def main():
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
-
+      
+      colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
+      st.write(colorscale)
       def style(feature):
         # choropleth approach
         # set colorscale
-        colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
         return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
@@ -127,6 +128,7 @@ def main():
         style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1},
         popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
         ).add_to(m) #.add_to(fg)
+      
       for marker in st.session_state["markers"]:
         m.add_child(marker)
 
