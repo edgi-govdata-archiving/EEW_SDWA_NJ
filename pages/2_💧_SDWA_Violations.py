@@ -10,6 +10,7 @@ from streamlit_folium import st_folium
 import geopandas
 import folium
 from folium.plugins import Draw
+import altair as alt
 
 st.set_page_config(layout="wide")
 
@@ -142,11 +143,15 @@ def main():
       # Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area
                 
       There are several types of SDWA violation, ranging from "acute health violations" that may immediately cause illness, to failures to monitor, to failures to notify the public, and more.
-      
-      Here, we identify the public water systems in your selected area that have the most overall SDWA violations.
       """)
-    st.dataframe(counts) 
-    st.bar_chart(counts)
+    #st.dataframe(counts) 
+    st.altair_chart(
+      alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
+        x = alt.X("COUNT", title = "Number of violations"),
+        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title="Facility").sort('-x') # Sort horizontal bar chart
+      ),
+    use_container_width=True
+    )
   with c3:
     st.markdown("""
                 # Health-Based Violations in Selected Area
@@ -155,20 +160,26 @@ def main():
 
                 Other violations are classed as more administrative, such as a failure to test the water, or failure to notify the public when a risk to public health has been found.
 
-                :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
                 """)
     st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
-    st.dataframe(violation_type)
-    st.bar_chart(violation_type)
-    st.markdown(":face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
-  
+    #st.dataframe(violation_type)
+    st.altair_chart(
+      alt.Chart(violation_type.reset_index(), title = 'Number of SDWA health-based violations by facility, 2001-present').mark_bar().encode(
+        x = alt.X("COUNT", title = "Number of violations"),
+        y = alt.Y('HEALTH_BASED', axis=alt.Axis(labelLimit = 500), title="Health-Based Violation?").sort('-x') # Sort horizontal bar chart
+      ),
+    use_container_width=True
+    )
+    st.markdown("""
+      :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
+      
+      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
+    """)
   if ((out["last_active_drawing"]) 
     and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
     and (out["last_active_drawing"]["geometry"]["type"] != "Point")
   ):
     st.session_state["last_active_drawing"] = out["last_active_drawing"]
-    print("last active drawing:")
-    print(st.session_state["last_active_drawing"])
     bounds = out["last_active_drawing"]
     bounds = geopandas.GeoDataFrame.from_features([bounds])
     bounds.set_crs(4269, inplace=True)

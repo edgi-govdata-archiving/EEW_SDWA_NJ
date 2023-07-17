@@ -113,11 +113,12 @@ def main():
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
-
+      
+      colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
+      st.write(colorscale)
       def style(feature):
         # choropleth approach
         # set colorscale
-        colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
         return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
@@ -127,6 +128,7 @@ def main():
         style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1},
         popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
         ).add_to(m) #.add_to(fg)
+      
       for marker in st.session_state["markers"]:
         m.add_child(marker)
 
@@ -142,12 +144,13 @@ def main():
                 Numbers of lead service lines reported in the Purveyor Service Areas that overlap with the selected area:
                 """)
     counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
-    st.dataframe(counts)
-    counts = counts.rename_axis('SYS_NAME').reset_index()
+    counts = counts.rename_axis('System Name') # Rename SYS_NAME to be pretty
+    #st.dataframe(counts) # show table
+    counts = counts.reset_index() # prepare the table for charting
     st.altair_chart(
       alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
         x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
-        y = alt.Y('SYS_NAME', axis=alt.Axis(labelLimit = 500), title=None)
+        y = alt.Y('System Name', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True
     )
@@ -157,10 +160,10 @@ def main():
   """)
   
   st.markdown("""
-      ### :face_with_monocle: How can we understand these numbers?
+      ### :face_with_monocle: How should we understand these numbers?
       This data is difficult to present in a way that's easy to intuitively grasp, because although the database gives us the *number* of lead service lines, it doesn't help us understand *who is impacted* or *how likely a given tap in that water system is* to have some lead in the water.
       
-      A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people live in a given unit. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but we don't know how evenly distributed those lead lines are among the population. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)
+      A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people are served by each line. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but that assumes each person has their own service line, lead or otherwise. In reality, it is households/buildings that receive service lines, and these may serve 0 to 100s of people. In theory, those 2,000 lead lines could serve all 40,000 residents - but we just don't have that granular level of information. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)
 
       :arrow_right: How might this kind of data imprecision intersect with environmental justice? For example, are there demographics that are more likely to have more people in a given household? Is there any way to tell if those same demographics are more or less likely than other parts of the population to have lead service lines?
               
