@@ -93,8 +93,8 @@ ejdefs = {
   #"OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
   #"PM25": "PM2.5 levels in air, µg/m3 annual avg.",
   #"UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
-}
-ej_parameters = ejdefs.keys()
+} # definitions of each parameter
+ej_parameters = ejdefs.keys() # the parameters themselves
 
 @st.cache_data
 def get_metadata():
@@ -104,7 +104,8 @@ columns = get_metadata()
 columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
 columns.set_index("Description", inplace = True)
 ej_dict = columns.to_dict()['GDB Fieldname']
-options = ej_dict.keys() # list of EJScreen variables that will be selected
+options = ej_dict.keys() # list of EJScreen variables that will be selected (% low income: LOWINCPCT, e.g.)
+ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" variable names later
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
@@ -117,6 +118,8 @@ with st.spinner(text="Loading data..."):
   census_data = census_data[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
   census_data[[i for i in ej_parameters]] = round(census_data[[i for i in ej_parameters]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
   census_data[[i for i in ej_parameters]] = census_data[[i for i in ej_parameters]].astype(str) + "%"
+  census_data.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
+  ej_dict = {v: k for k, v in ej_dict.items()} # re-reverse the key/value dictionary mapping for later use
 
 # Convert st.session_state["last_active_drawing"]
 try:
@@ -157,10 +160,10 @@ def main():
       options = options,
       label_visibility = "hidden"
     )
-    ejvar = ej_dict[ejdesc]
+    ejvar = ej_dict[ejdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
 
     st.markdown("**EPA defines this as:**")
-    st.markdown(ejdefs[ejvar])
+    st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
     st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
     st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
@@ -168,19 +171,19 @@ def main():
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
-      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].str.strip("%").astype(float).min(), bg_data[ejvar].str.strip("%").astype(float).max()) # 0 - 1? 
+      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1? 
       st.write(colorscale)
       def style(feature):
         # choropleth approach
         # set colorscale
-        return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(float(feature["properties"][ejvar].strip("%")))
+        return "#d3d3d3" if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
 
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
         style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=[ejvar])
+        popup=folium.GeoJsonPopup(fields=[ejdesc])
       ).add_to(m) 
       for marker in st.session_state["markers"]:
         m.add_child(marker)
