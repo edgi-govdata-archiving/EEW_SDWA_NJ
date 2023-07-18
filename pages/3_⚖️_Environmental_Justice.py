@@ -94,7 +94,17 @@ ejdefs = {
   #"PM25": "PM2.5 levels in air, µg/m3 annual avg.",
   #"UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
 }
-options = ejdefs.keys()
+ej_parameters = ejdefs.keys()
+
+@st.cache_data
+def get_metadata():
+  columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
+  return columns
+columns = get_metadata()
+columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
+columns.set_index("Description", inplace = True)
+ej_dict = columns.to_dict()['GDB Fieldname']
+options = ej_dict.keys() # list of EJScreen variables that will be selected
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
@@ -104,9 +114,9 @@ with st.spinner(text="Loading data..."):
   census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
   census_data = census_data.join(ej_data) # join based on this shared id
-  census_data = census_data[[i for i in ejdefs.keys()] + ["geometry"]] # Filter out unnecessary columns
-  census_data[[i for i in ejdefs.keys()]] = round(census_data[[i for i in ejdefs.keys()]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
-  census_data[[i for i in ejdefs.keys()]] = census_data[[i for i in ejdefs.keys()]].astype(str) + "%"
+  census_data = census_data[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
+  census_data[[i for i in ej_parameters]] = round(census_data[[i for i in ej_parameters]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
+  census_data[[i for i in ej_parameters]] = census_data[[i for i in ej_parameters]].astype(str) + "%"
 
 # Convert st.session_state["last_active_drawing"]
 try:
@@ -142,11 +152,12 @@ def main():
   c2 = st.container()
 
   with c2:
-    ejvar = st.selectbox(
-      label = "Which EJ measure shall we explore?",
+    ejdesc = st.selectbox(
+      label = "Which EJ measure do you wan to explore?",
       options = options,
       label_visibility = "hidden"
     )
+    ejvar = ej_dict[ejdesc]
 
     st.markdown("**EPA defines this as:**")
     st.markdown(ejdefs[ejvar])
