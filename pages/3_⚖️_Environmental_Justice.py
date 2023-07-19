@@ -36,14 +36,9 @@ if redraw:
     switch_page("SDWA Violations")
 
 st.markdown("""
-## Select an Environmental Justice measure below
+## Select an environmental justice measure below
 
-Use the dropdown menu below to select an EJ measure to study. The map will change to show each of the Census block groups that are at least partly in the selected area, and
-the recorded value for the EJ measure there. The data come from EPA's EJScreen tool.
-
-On the map, the darker the shade of the blue, 
-the more of the measure - a higher percentage minority population, for instance.
-
+Use the dropdown menu below to select an EJ measure to study.
 """)
 
 @st.cache_data
@@ -154,9 +149,9 @@ def main():
   c1 = st.container()
   c2 = st.container()
 
-  with c2:
+  with c1:
     ejdesc = st.selectbox(
-      label = "Which EJ measure do you wan to explore?",
+      label = "Which EJ measure do you want to explore?",
       options = options,
       label_visibility = "hidden"
     )
@@ -164,26 +159,31 @@ def main():
 
     st.markdown("**EPA defines this as:**")
     st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
-    st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
-    st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
-  with c1:
+  with c2:
+    st.markdown("""
+      ### Map of selected environmental justice measures by census block
+
+      The map below shows each of the census block groups that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). The darker the shade of the blue, the more present that measure is in the block— for example, a higher percentage minority population will appear in a darker blue.
+                """)
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
-      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1? 
+      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
+      colorscale.width=500
       st.write(colorscale)
       def style(feature):
         # choropleth approach
         # set colorscale
         return "#d3d3d3" if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
 
+      prettier_map_labels = ejdesc + ":&nbsp" # Adds a space between the field name and value
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
         style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=[ejdesc])
+        popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
       ).add_to(m) 
       for marker in st.session_state["markers"]:
         m.add_child(marker)
@@ -192,6 +192,9 @@ def main():
         m,
         returned_objects=[]
       )
+    
+    st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
+    st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
 if __name__ == "__main__":
   main()
