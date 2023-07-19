@@ -36,14 +36,9 @@ if redraw:
     switch_page("SDWA Violations")
 
 st.markdown("""
-## Select an Environmental Justice measure below
+## Select an environmental justice measure below
 
-Use the dropdown menu below to select an EJ measure to study. The map will change to show each of the Census block groups that are at least partly in the selected area, and
-the recorded value for the EJ measure there. The data come from EPA's EJScreen tool.
-
-On the map, the darker the shade of the blue, 
-the more of the measure - a higher percentage minority population, for instance.
-
+Use the dropdown menu below to select an EJ measure to study.
 """)
 
 @st.cache_data
@@ -93,8 +88,19 @@ ejdefs = {
   #"OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
   #"PM25": "PM2.5 levels in air, µg/m3 annual avg.",
   #"UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
-}
-options = ejdefs.keys()
+} # definitions of each parameter
+ej_parameters = ejdefs.keys() # the parameters themselves
+
+@st.cache_data
+def get_metadata():
+  columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
+  return columns
+columns = get_metadata()
+columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
+columns.set_index("Description", inplace = True)
+ej_dict = columns.to_dict()['GDB Fieldname']
+options = ej_dict.keys() # list of EJScreen variables that will be selected (% low income: LOWINCPCT, e.g.)
+ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" variable names later
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
@@ -104,9 +110,11 @@ with st.spinner(text="Loading data..."):
   census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
   census_data = census_data.join(ej_data) # join based on this shared id
-  census_data = census_data[[i for i in ejdefs.keys()] + ["geometry"]] # Filter out unnecessary columns
-  census_data[[i for i in ejdefs.keys()]] = round(census_data[[i for i in ejdefs.keys()]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
-  census_data[[i for i in ejdefs.keys()]] = census_data[[i for i in ejdefs.keys()]].astype(str) + "%"
+  census_data = census_data[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
+  census_data[[i for i in ej_parameters]] = round(census_data[[i for i in ej_parameters]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
+  census_data[[i for i in ej_parameters]] = census_data[[i for i in ej_parameters]].astype(str) + "%"
+  census_data.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
+  ej_dict = {v: k for k, v in ej_dict.items()} # re-reverse the key/value dictionary mapping for later use
 
 # Convert st.session_state["last_active_drawing"]
 try:
@@ -141,35 +149,41 @@ def main():
   c1 = st.container()
   c2 = st.container()
 
-  with c2:
-    ejvar = st.selectbox(
-      label = "Which EJ measure shall we explore?",
+  with c1:
+    ejdesc = st.selectbox(
+      label = "Which EJ measure do you want to explore?",
       options = options,
       label_visibility = "hidden"
     )
+    ejvar = ej_dict[ejdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
 
     st.markdown("**EPA defines this as:**")
-    st.markdown(ejdefs[ejvar])
-    st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
-    st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
+    st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
 
-  with c1:
+  with c2:
+    st.markdown("""
+      ### Map of selected environmental justice measures by census block group
+
+      The map below shows each of the census block groups that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). The darker the shade of the blue, the more present that measure is in the block group — for example, a higher percentage minority population will appear in a darker blue.
+                """)
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
-      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejvar].str.strip("%").astype(float).min(), bg_data[ejvar].str.strip("%").astype(float).max()) # 0 - 1? 
+      colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
+      colorscale.width=500
       st.write(colorscale)
       def style(feature):
         # choropleth approach
         # set colorscale
-        return "#d3d3d3" if feature["properties"][ejvar] is None else colorscale(float(feature["properties"][ejvar].strip("%")))
+        return "#d3d3d3" if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
 
+      prettier_map_labels = ejdesc + ":&nbsp" # Adds a space between the field name and value
       geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
         style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=[ejvar])
+        popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
       ).add_to(m) 
       for marker in st.session_state["markers"]:
         m.add_child(marker)
@@ -178,6 +192,9 @@ def main():
         m,
         returned_objects=[]
       )
+    
+    st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
+    st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
 if __name__ == "__main__":
   main()
