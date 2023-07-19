@@ -162,9 +162,9 @@ def main():
 
   with c2:
     st.markdown("""
-      ### Map of selected environmental justice measures by census block
+      ### Map of selected environmental justice measures by census block group
 
-      The map below shows each of the census block groups that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). The darker the shade of the blue, the more present that measure is in the block— for example, a higher percentage minority population will appear in a darker blue.
+      The map below shows each of the census block groups that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). The darker the shade of the blue, the more present that measure is in the block group — for example, a higher percentage minority population will appear in a darker blue.
                 """)
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles="cartodb positron")

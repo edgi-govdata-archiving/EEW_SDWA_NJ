@@ -115,6 +115,7 @@ def main():
       m.fit_bounds(bounds)
       
       colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
+      colorscale.width=500
       st.write(colorscale)
       def style(feature):
         # choropleth approach
