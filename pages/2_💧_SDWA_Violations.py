@@ -148,7 +148,7 @@ def main():
     st.altair_chart(
       alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
         x = alt.X("COUNT", title = "Number of violations"),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title="Facility").sort('-x') # Sort horizontal bar chart
+        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True
     )
@@ -173,7 +173,7 @@ def main():
     st.markdown("""
       :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
       
-      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
+      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
   if ((out["last_active_drawing"]) 
     and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
