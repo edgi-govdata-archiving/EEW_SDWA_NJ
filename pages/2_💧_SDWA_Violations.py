@@ -56,7 +56,7 @@ with st.spinner(text="Loading data..."):
     sdwa = st.session_state["sdwa"]
     sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   except:
-    st.error("### Error: Please start on the 'Statewide Overview' page.")
+    st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
 
 # Streamlit section
@@ -86,13 +86,16 @@ def main():
         edit_options={"edit": False, "remove": False}
       ).add_to(m)
 
-      if st.session_state["last_active_drawing"] is not None: # user has drawn a box
+      if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): # else statement has already ran
+        print("IF_1")
+        # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
         geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
         geo_j.add_to(m)
       else: # default - no box drawn yet
+        print("ELSE")
         # draw box
         default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-        #st.session_state["last_active_drawing"] = default_box["features"][0]
+        #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
         # add to map
         geo_j = folium.GeoJson(data=default_box)
         geo_j.add_to(m)
@@ -180,6 +183,7 @@ def main():
   if (
     (out["last_active_drawing"]) and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
   ):
+    print("IF_2")
     bounds = out["last_active_drawing"]
     bounds = geopandas.GeoDataFrame.from_features([bounds])
     bounds.set_crs(4269, inplace=True)
