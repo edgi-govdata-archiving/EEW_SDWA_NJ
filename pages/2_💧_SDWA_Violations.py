@@ -20,13 +20,13 @@ if previous:
 
 st.markdown(""" # Search for Public Water Systems and Find Violations
 
-  ### Select an area on the interactive map below in order to proceed.
-
   Using the buttons on the left-hand side of the map, draw a rectangle around the part of New Jersey that you want to learn more about.
   After you draw the box, the map will show any public water systems within it, and the lower part of the page will give details about any violations of SDWA they may have
   recorded since 2001.
 
   The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and draw a different box.
+
+  ### Select an area on the interactive map below in order to proceed.
 """)
 
 @st.cache_data
@@ -148,7 +148,7 @@ def main():
     st.altair_chart(
       alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
         x = alt.X("COUNT", title = "Number of violations"),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title="Facility").sort('-x') # Sort horizontal bar chart
+        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True
     )
@@ -174,7 +174,7 @@ def main():
     st.markdown("""
       :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
       
-      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
+      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
   
   if (

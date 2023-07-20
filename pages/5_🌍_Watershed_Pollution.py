@@ -33,12 +33,7 @@ if redraw:
     switch_page("SDWA Violations")
 
 st.markdown("""
-
   On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.
-
-  The map below shows the watersheds for the place you selected and the industrial facilities within those watersheds that reported releasing a selected pollutant. 
-
-  Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged.
 """)
             
 @st.cache_data
@@ -127,22 +122,19 @@ def main():
   c3 = st.container()
 
   with c2:
+    st.markdown("""
+      ### Analyze by pollutant
+      Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged.
+                """)
     pollutant = st.selectbox(
       "Select a pollutant...",
       list(top_pollutants.index),
       label_visibility = "hidden"
     )
-    #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
-    units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
-    st.altair_chart(
-      alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022').mark_bar().encode(
-        x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
-      ),
-    use_container_width=True
-    )
 
-  with c1:
+  with c3:
+    st.markdown("""
+      The map below shows the watersheds for the place you selected and the industrial facilities within those watersheds that reported releasing the selected pollutant.""")
     with st.spinner(text="Loading interactive map..."):
       m = folium.Map(tiles = "cartodb positron")
       
@@ -172,9 +164,21 @@ def main():
         returned_objects=[]
       )
 
-  with c3:
+      #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
+      units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
+      st.altair_chart(
+        alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022 by facilities in selected watersheds').mark_bar().encode(
+          x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
+          y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
+        ),
+      use_container_width=True
+      )
+
+    st.markdown(":face_with_monocle: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
+
+  with c1:
     st.markdown("""
-      # Most Frequently Reported Pollutants in Watershed(s)
+      ### Most Frequently Reported Pollutants in Watershed(s) in Selected Area
       """)
   
     # st.dataframe(top_pollutants)
