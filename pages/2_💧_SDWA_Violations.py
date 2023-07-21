@@ -105,76 +105,77 @@ def main():
     st.session_state["data"] = None
   if "bounds" not in st.session_state:
     st.session_state["bounds"] = None
+  if "psa_gdf" not in st.session_state:
+    st.session_state["psa_gdf"] = None
 
   c1 = st.container()
   c2 = st.container()
   c3 = st.container()
 
   with c1:
-    col1, col2 = st.columns(2)
-    with col1:
-      with st.spinner(text="Loading interactive map..."):
-        m = folium.Map(tiles="cartodb positron")
+    col1, col2 = st.columns(2) 
+    m = folium.Map(tiles="cartodb positron")
 
-        Draw(
-          export=False,
-          draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
-          edit_options={"edit": False, "remove": False}
-        ).add_to(m)
+    Draw(
+      export=False,
+      draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
+      edit_options={"edit": False, "remove": False}
+    ).add_to(m)
 
-        # Else statement has already ran
-        if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): 
-          # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
-          geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
-          geo_j.add_to(m)
+    # Else statement has already ran
+    if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): 
+      # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
+      geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
+      geo_j.add_to(m)
 
-        # Default - no box drawn yet
-        else:
-          # Draw box
-          default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-          #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
-          # Add box to map
-          folium.GeoJson(data=default_box).add_to(m)
-          # set bounds
-          bounds = geopandas.GeoDataFrame.from_features(default_box)
-          bounds.set_crs(4326, inplace=True)
-          x1,y1,x2,y2 = bounds.geometry.total_bounds
-          st.session_state["bounds"] = [[y1, x1], [y2, x2]]
-          # Get PSAs
-          psa_gdf = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
-          #folium.GeoJson(
-          #  psa_gdf,
-          #  style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .75, "weight": .5},
-          #  popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
-          #).add_to(m)
-          # Get PWS
-          these_pws = geopandas.clip(sdwa, bounds.geometry)
-          these_pws = list(these_pws["PWSID"].unique())
-          data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
-          st.session_state["data"] = data # Save full data for charts
-          # Process data, make markers
-          st.session_state["markers"] = marker_maker(data)  
+    # Default - no box drawn yet
+    else:
+      # Draw box
+      default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+      #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
+      # Add box to map
+      folium.GeoJson(data=default_box).add_to(m)
+      # set bounds
+      bounds = geopandas.GeoDataFrame.from_features(default_box)
+      bounds.set_crs(4326, inplace=True)
+      x1,y1,x2,y2 = bounds.geometry.total_bounds
+      st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+      # Get PSAs
+      st.session_state["psa_gdf"] = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
+      # Get PWS
+      these_pws = geopandas.clip(sdwa, bounds.geometry)
+      these_pws = list(these_pws["PWSID"].unique())
+      data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+      st.session_state["data"] = data # Save full data for charts
+      # Process data, make markers
+      st.session_state["markers"] = marker_maker(data)  
 
-        for marker in st.session_state["markers"]:
-          m.add_child(marker)
+    if st.session_state["psa_gdf"].empty:
+      pass
+    else:
+      folium.GeoJson(
+        st.session_state["psa_gdf"],
+        style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .75, "weight": .5},
+        popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
+      ).add_to(m)
 
-        if st.session_state["bounds"]:
-          m.fit_bounds(st.session_state["bounds"])
+    for marker in st.session_state["markers"]:
+      m.add_child(marker)
 
-        out = st_folium(
-          m,
-          width = 750,
-          returned_objects=["last_active_drawing"]
-        )
+    if st.session_state["bounds"]:
+      m.fit_bounds(st.session_state["bounds"])
 
-      with col2:
-        st.markdown("""
-          ### Map Legend
+  with col2:
+    st.markdown("""
+      ### Map Legend
 
-          | Feature | What it means |
-          |------|---------------|
-          | Size | Number of violations since 2001 - the larger the circle, the more violations |    
-        """)
+      | Feature | What it means |
+      |------|---------------|
+      | Size | Number of violations since 2001 - the larger the circle, the more violations |    
+    """)
+
+
+  with c2:
     # Manipulate data
     try:
       counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
@@ -189,7 +190,6 @@ def main():
       counts = []
       violation_type = []
 
-  with c2:
     st.markdown("""
       # Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area
                 
@@ -227,7 +227,15 @@ def main():
       
       :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
-  
+
+  with col1:
+    with st.spinner(text="Loading interactive map..."):
+      out = st_folium(
+        m,
+        width = 750,
+        returned_objects=["last_active_drawing"]
+      )
+
   if (
     (out["last_active_drawing"]) and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
   ):
@@ -237,6 +245,9 @@ def main():
     if bounds.geometry.area[0] < .07:
       x1,y1,x2,y2 = bounds.geometry.total_bounds
       st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+      # Get PSAs
+      psa_gdf = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
+      st.session_state["psa_gdf"] = psa_gdf
       # Keep this drawing
       st.session_state["last_active_drawing"] = out["last_active_drawing"]
       # Get data
@@ -244,17 +255,14 @@ def main():
       these_pws = list(these_pws["PWSID"].unique())
       data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
       st.session_state["data"] = data
-      #if (data):
-        # Process data, make markers for mapping
+      # Process data, make markers for mapping
       st.session_state["markers"] = marker_maker(data)
       # Refresh
       st.experimental_rerun()
-      #else:
-      #  with col2:
-      #    st.error("### The area you've drawn doesn't include any PWS with reported violations! Try drawing a different one.")
     else:
       with col2:
         st.error("### You've drawn a big area! Try drawing a smaller one.")
+
 
 if __name__ == "__main__":
   main()
