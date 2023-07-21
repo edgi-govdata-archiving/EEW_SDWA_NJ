@@ -93,7 +93,8 @@ def main():
     """)
 
     def chart_category(selected_category):
-      counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
+      data = st.session_state["sdwa"].loc[st.session_state["sdwa"]["FISCAL_YEAR"] == 2021] # This ensures we're only summarizing currently operating facilities and not duplicating them
+      counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)
       counts = counts.rename_axis(selected_category).reset_index()
