@@ -51,9 +51,17 @@ def main():
     def make_map():
       m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, tiles="cartodb positron")
 
-      #add markers
+      # Add polygons representing PSAs
+      #gj = folium.GeoJson(
+      #  st.session_state["service_areas"],
+      #  style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .75, "weight": .5},
+      #  popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
+      #  ).add_to(m)
+
+      # Add markers representing PWS
       for marker in st.session_state["statewide_markers"]:
         m.add_child(marker)
+
       out = st_folium(
         m,
         width = 750,

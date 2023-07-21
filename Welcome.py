@@ -129,13 +129,45 @@ def get_data(query):
   except:
     with c1:
       st.error("Sorry, there's a problem getting the data.")
+        
+# Get service area data
+@st.cache_data
+def add_spatial_data(url, name, projection=4326):
+  """
+  Gets external geospatial data
+  
+  Parameters
+  ----------
+  url: a zip of shapefile (in the future, extend to geojson)
+  name: a string handle for the data files
+  projection (optional): an EPSG projection for the spatial dataa
+
+  Returns
+  -------
+  sd: spatial data reads ]as a geodataframe and projected to a specified projected coordinate system, or defaults to GCS
+  
+  """
+
+  r = requests.get(url) 
+  z = zipfile.ZipFile(io.BytesIO(r.content))
+  z.extractall(name)
+  sd = geopandas.read_file(""+name+"/")
+  sd.to_crs(crs=projection, inplace=True) # transform to input projection, defaults to WGS GCS
+  return sd
 
 # Initial query (NJ PWS)
 with st.spinner(text="Loading data..."):
+  # Load PWS data
   sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
   sdwa, markers = get_data(sql)
   if "sdwa" not in st.session_state:
     st.session_state["sdwa"] = sdwa # save for later
   if "statewide_markers" not in st.session_state:
     st.session_state["statewide_markers"] = markers
-        
+
+  # Load purveyor service area (PSA) data
+  service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
+  service_areas.set_index("PWID", inplace=True)
+  if "service_areas" not in st.session_state:
+    st.session_state["service_areas"] = service_areas
+  st.write(service_areas)
