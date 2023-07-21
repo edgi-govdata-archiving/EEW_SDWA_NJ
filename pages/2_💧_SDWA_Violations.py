@@ -244,14 +244,14 @@ def main():
       these_pws = list(these_pws["PWSID"].unique())
       data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
       st.session_state["data"] = data
-      if (data):
+      #if (data):
         # Process data, make markers for mapping
-        st.session_state["markers"] = marker_maker(data)
-        # Refresh
-        st.experimental_rerun()
-      else:
-        with col2:
-          st.error("### The area you've drawn doesn't include any PWS with reported violations! Try drawing a different one.")
+      st.session_state["markers"] = marker_maker(data)
+      # Refresh
+      st.experimental_rerun()
+      #else:
+      #  with col2:
+      #    st.error("### The area you've drawn doesn't include any PWS with reported violations! Try drawing a different one.")
     else:
       with col2:
         st.error("### You've drawn a big area! Try drawing a smaller one.")
