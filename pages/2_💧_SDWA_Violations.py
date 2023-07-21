@@ -76,7 +76,7 @@ def marker_maker(data):
   for key, value in type_acronym_dict.items():
     data['PWS_TYPE_CODE'] = data['PWS_TYPE_CODE'].str.replace(key, value)
   #t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
-  data['quantile'] = pd.qcut(data["COUNT"], 4, labels=False)
+  data['quantile'] = pd.qcut(data["COUNT"], 4, labels=False, duplicates="drop")
   scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
   # Map PWS
   markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 

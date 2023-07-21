@@ -157,7 +157,7 @@ def main():
         context.set_index("EXTERNAL_PERMIT_NMBR", inplace = True)
         filtered_data = filtered_data.groupby(by=["EXTERNAL_PERMIT_NMBR"])[["EXTERNAL_PERMIT_NMBR"]].count().rename(columns={"EXTERNAL_PERMIT_NMBR": "COUNT"}) # Group data
         filtered_data = context.join(filtered_data).reset_index().drop_duplicates(subset=["EXTERNAL_PERMIT_NMBR"])
-        filtered_data['quantile'] = pd.qcut(filtered_data["COUNT"], 4, labels=False)
+        filtered_data['quantile'] = pd.qcut(filtered_data["COUNT"], 4, labels=False, duplicates="drop")
         scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
         markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
         popup =folium.Popup(mark["FAC_NAME"] + "<br><b>Reports of "+pollutant+" in 2022: </b>"+str(mark["COUNT"])+"<br><b>Industry codes (NAICS, SICS): </b>"+str(mark["FAC_SIC_CODES"])+"/"+str(mark["FAC_NAICS_CODES"])),
