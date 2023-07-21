@@ -56,8 +56,8 @@ with st.spinner(text="Loading data..."):
     default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
     location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
     map_data = default_box["features"][0]
-    b = location.geometry.total_bounds
   # Get watershed boundary
+  b = location.geometry.total_bounds
   sql = """
   SELECT * FROM "wbdhu12" WHERE ST_INTERSECTS(ST_GeomFromText('POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))', 4269), "wbdhu12"."wkb_geometry");
   """.format(b[0], b[1], 
