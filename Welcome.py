@@ -95,6 +95,7 @@ def get_data(query):
     data_location = url + urllib.parse.quote_plus(query) + '&pg'
     data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
 
+    st.dataframe(data)
     # Map all SDWA PWS
     sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
     # String manipulations to make output more readable
@@ -128,7 +129,8 @@ def get_data(query):
   
   except:
     with c1:
-      st.error("Sorry, there's a problem getting the data.")
+      st.error("### Sorry, there's a problem getting the data.")
+      st.stop()
         
 # Get service area data
 @st.cache_data
@@ -170,4 +172,3 @@ with st.spinner(text="Loading data..."):
   service_areas.set_index("PWID", inplace=True)
   if "service_areas" not in st.session_state:
     st.session_state["service_areas"] = service_areas
-  st.write(service_areas)

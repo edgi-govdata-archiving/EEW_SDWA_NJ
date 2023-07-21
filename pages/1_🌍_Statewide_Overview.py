@@ -74,17 +74,17 @@ def main():
         make_map()
     with col2:
       st.markdown("""
-      ### Map Legend
+        ### Map Legend
 
-      | Feature | What it means |
-      |------|---------------|
-      | Outline - Solid | PWS that draw from surface water |
-      | Outline - None | PWS that draw from groundwater |
-      | Color - Blue | Community Water Systems |
-      | Color - Yellow | Transient Non-Community Water Systems |
-      | Color - Green | Non-Transient, Non-Community Water Systems |
-      | Size | PWS size, from very small to very large |    
-    """)
+        | Feature | What it means |
+        |------|---------------|
+        | Outline - Solid | PWS that draw from surface water |
+        | Outline - None | PWS that draw from groundwater |
+        | Color - Blue | Community Water Systems |
+        | Color - Yellow | Transient Non-Community Water Systems |
+        | Color - Green | Non-Transient, Non-Community Water Systems |
+        | Size | PWS size, from very small to very large |    
+      """)
 
     st.markdown("""
       ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
