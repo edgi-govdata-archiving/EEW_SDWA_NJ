@@ -119,55 +119,67 @@ def main():
       
       The map below shows Purveyor Service Areas colored by the number of lead service lines reported in that area. The darker the shade of blue, the more lead service lines are reported.
     """)
+    col1, col2 = st.columns(2)
+    with col1:
+      with st.spinner(text="Loading interactive map..."):
+        m = folium.Map(tiles="cartodb positron")
+        m.fit_bounds(bounds)
+        
+        colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
+        colorscale.width=750
+        st.write(colorscale)
+        def style(feature):
+          # choropleth approach
+          # set colorscale
+          return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
-    with st.spinner(text="Loading interactive map..."):
-      m = folium.Map(tiles="cartodb positron")
-      m.fit_bounds(bounds)
-      
-      colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Measurement (service lines)"].min(), lead_data["Measurement (service lines)"].max())
-      colorscale.width=750
-      st.write(colorscale)
-      def style(feature):
-        # choropleth approach
-        # set colorscale
-        return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
+        # Add default or custom box
+        geo_j = folium.GeoJson(map_data) 
+        geo_j.add_to(m)
+        # Add PSA service areas
+        gj = folium.GeoJson(
+          lead,
+          style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1, "color": "white"},
+          popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
+          ).add_to(m) #.add_to(fg)
+        
+        for marker in st.session_state["markers"]: # If there are markers from the Violations page, map them
+          m.add_child(marker)
 
-      # Add default or custom box
-      geo_j = folium.GeoJson(map_data) 
-      geo_j.add_to(m)
-      # Add PSA service areas
-      gj = folium.GeoJson(
-        lead,
-        style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1, "color": "white"},
-        popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
-        ).add_to(m) #.add_to(fg)
-      
-      for marker in st.session_state["markers"]: # If there are markers from the Violations page, map them
-        m.add_child(marker)
+        out = st_folium(
+          m,
+          width = 750,
+          returned_objects=[]
+        )
+      with col2:
+        st.markdown("""
+          ### Map Legend
 
-      out = st_folium(
-        m,
-        width = 750,
-        returned_objects=[]
-      )
+          | Feature | What it means |
+          |------|---------------|
+          | Size | Number of violations since 2001 - the larger the circle, the more violations |    
+        """)
 
   with c2:
     st.markdown("""
                 # Count of Lead Service Lines in Purveyor Service Areas
 
-                Numbers of lead service lines reported in the Purveyor Service Areas that overlap with the selected area:
+                Number of lead service lines reported in the Purveyor Service Areas that overlap with the selected area:
                 """)
     counts = lead_data.sort_values(by=["Measurement (service lines)"], ascending=False)[["Measurement (service lines)"]]
     counts = counts.rename_axis('System Name') # Rename SYS_NAME to be pretty
-    #st.dataframe(counts) # show table
     counts = counts.reset_index() # prepare the table for charting
-    st.altair_chart(
-      alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
-        x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
-        y = alt.Y('System Name', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
-      ),
-    use_container_width=True
-    )
+    col3, col4 = st.columns(2)
+    with col3:
+      st.altair_chart(
+        alt.Chart(counts, title = 'Number of Lead Service Lines per Purveyor Service Area in Selected Area').mark_bar().encode(
+          x = alt.X("Measurement (service lines)", title = "Number of lead service lines in system"),
+          y = alt.Y('System Name', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
+        ),
+      use_container_width=True
+      )
+    with col4:
+      st.dataframe(counts) # show table
 
   st.caption("""
     Data compiled from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
