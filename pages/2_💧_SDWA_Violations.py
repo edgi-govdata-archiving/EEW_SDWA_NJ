@@ -155,7 +155,7 @@ def main():
     else:
       folium.GeoJson(
         st.session_state["psa_gdf"],
-        style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .75, "weight": .5},
+        style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .25, "weight": 1, "color": "white"},
         popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
       ).add_to(m)
 

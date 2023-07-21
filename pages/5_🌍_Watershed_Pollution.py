@@ -144,7 +144,7 @@ def main():
       geo_j.add_to(m)
       gj = folium.GeoJson(
         watersheds,
-        style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1},
+        style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1, "color": "white"},
         popup=folium.GeoJsonPopup(fields=['huc12'])
         ).add_to(m)
 

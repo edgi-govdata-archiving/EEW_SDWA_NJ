@@ -138,7 +138,7 @@ def main():
       # Add PSA service areas
       gj = folium.GeoJson(
         lead,
-        style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1},
+        style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1, "color": "white"},
         popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
         ).add_to(m) #.add_to(fg)
       

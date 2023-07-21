@@ -184,7 +184,7 @@ def main():
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
-        style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
+        style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
         popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
       ).add_to(m) 
       for marker in st.session_state["markers"]: # If there are markers (from the Violations page), map them
