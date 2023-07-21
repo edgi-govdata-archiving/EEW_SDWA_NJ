@@ -88,8 +88,8 @@ with st.spinner(text="Loading data..."):
     dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
   lead = sas.join(lead.set_index("PWSID"))
   lead.set_index("SYS_NAME", inplace=True)
-  # Set new bounds
-  x1,y1,x2,y2 = lead.geometry.total_bounds
+  # Set bounds
+  x1,y1,x2,y2 = location.geometry.total_bounds
   bounds = [[y1, x1], [y2, x2]]
   # Save data for later
   lead_data = lead
@@ -132,8 +132,10 @@ def main():
         # set colorscale
         return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
-      geo_j = folium.GeoJson(map_data)
+      # Add default or custom box
+      geo_j = folium.GeoJson(map_data) 
       geo_j.add_to(m)
+      # Add PSA service areas
       gj = folium.GeoJson(
         lead,
         style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 1},

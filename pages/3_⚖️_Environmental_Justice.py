@@ -128,8 +128,8 @@ except:
 # Filter to area
 bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
 bg_data = bgs
-# Set new bounds
-x1,y1,x2,y2 = bgs.geometry.total_bounds
+# Set bounds to drawn area
+x1,y1,x2,y2 = location.geometry.total_bounds
 bounds = [[y1, x1], [y2, x2]]
 # bgs back to features
 bgs = json.loads(bgs.to_json())
