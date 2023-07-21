@@ -4,6 +4,12 @@
 
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
+import pandas as pd
+import urllib.parse
+import geopandas
+import folium
+import json
+import requests, zipfile, io
 
 st.set_page_config(layout="wide")
 st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
@@ -73,3 +79,54 @@ Use the dropdown menu to select different pollutants and see how much reporting 
 st.markdown("""
 ##### This website was created by the [Environmental Enforcement Watch](https://environmentalenforcementwatch.org/) (EEW) project of the [Environmental Data and Governance Initiative](https://envirodatagov.org/) (EDGI).  Please visit our websites to learn more about our work!
 """)
+
+@st.cache_data
+def get_data(query):
+  try:
+    # Get data
+    url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
+    data_location = url + urllib.parse.quote_plus(query) + '&pg'
+    data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+
+    # Map all SDWA PWS
+    sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
+    # String manipulations to make output more readable
+    source_acronym_dict = {
+      'GW': 'Groundwater',
+      'SW': 'Surface water'
+    }
+    for key, value in source_acronym_dict.items():
+      sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
+    s = {"Groundwater": "3", "Surface water": "0"}
+
+    type_acronym_dict = {
+      'NTNCWS': 'Non-Transient, Non-Community Water System',
+      'TNCWS': 'Transient Non-Community Water System',
+      'CWS': 'Community Water System'
+    }
+    for key, value in type_acronym_dict.items():
+      sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
+    t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
+       
+    r = {"Very Small": 2, "Small": 6, "Medium": 12, "Large": 20, "Very Large": 32}
+
+    ## Convert to circle markers
+    sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+      
+    markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
+      popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], dash_array=s[mark["SOURCE_WATER"]]) for index,mark in sdwa_circles.iterrows() if not mark.geometry.is_empty]
+    print(sdwa, markers)
+    return sdwa, markers
+  except:
+    print("Sorry, can't get data")
+
+# Initial query (NJ PWS)
+with st.spinner(text="Loading data..."):
+  sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
+  sdwa, markers = get_data(sql)
+  if "sdwa" not in st.session_state:
+    st.session_state["sdwa"] = sdwa # save for later
+  if "statewide_markers" not in st.session_state:
+    st.session_state["statewide_markers"] = markers
+        

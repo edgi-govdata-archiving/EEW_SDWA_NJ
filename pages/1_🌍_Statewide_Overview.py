@@ -31,59 +31,12 @@ st.markdown("""
 st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
 
 def main():
-  @st.cache_data
-  def get_data(query):
-    try:
-      # Get data
-      url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-      data_location = url + urllib.parse.quote_plus(query) + '&pg'
-      data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
-
-      # Map all SDWA PWS
-      sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
-      # String manipulations to make output more readable
-      source_acronym_dict = {
-        'GW': 'Groundwater',
-        'SW': 'Surface water'
-        }
-      for key, value in source_acronym_dict.items():
-        sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
-      s = {"Groundwater": "3", "Surface water": "0"}
-
-      type_acronym_dict = {
-        'NTNCWS': 'Non-Transient, Non-Community Water System',
-        'TNCWS': 'Transient Non-Community Water System',
-        'CWS': 'Community Water System'
-      }
-      for key, value in type_acronym_dict.items():
-        sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
-      t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
-       
-      r = {"Very Small": 2, "Small": 6, "Medium": 12, "Large": 20, "Very Large": 32}
-
-      ## Convert to circle markers
-      sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
-      
-      markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-        popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-        radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], dash_array=s[mark["SOURCE_WATER"]]) for index,mark in sdwa.iterrows() if not mark.geometry.is_empty]
-
-      return sdwa, markers
-    except:
-      print("Sorry, can't get data")
-
-  # Initial query (NJ PWS)
-  sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
-  sdwa, markers = get_data(sql)
-  if "sdwa" not in st.session_state:
-    st.session_state["sdwa"] = sdwa # save for later
 
   # Streamlit section
   # Map
-  if "markers" not in st.session_state:
-    st.session_state["markers"] = []
-  if "last_active_drawing" not in st.session_state:
-    st.session_state["last_active_drawing"] = None
+  
+  #if "last_active_drawing" not in st.session_state:
+    #st.session_state["last_active_drawing"] = None
 
   c1 = st.container()
   c2 = st.container()
@@ -99,7 +52,7 @@ def main():
       m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, tiles="cartodb positron")
 
       #add markers
-      for marker in markers:
+      for marker in st.session_state["statewide_markers"]:
         m.add_child(marker)
       out = st_folium(
         m,
@@ -205,7 +158,6 @@ def main():
       st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
 
 if __name__ == "__main__":
-  with st.spinner(text="Loading data..."):
     main()
 
 next = st.button("Next: Safe Drinking Water Act Violations")

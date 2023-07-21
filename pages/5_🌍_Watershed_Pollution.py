@@ -50,11 +50,13 @@ def get_data(query):
 with st.spinner(text="Loading data..."):
   # Get bounds of shape
   try:
-    location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
-    b = location.geometry.total_bounds
+    location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
+    map_data = st.session_state["last_active_drawing"]
   except:
-    st.error("### Error: Did you forget to start on the 'Statewide Overview' page and/or draw a box on the 'SDWA Violations' page?")
-    st.stop()
+    default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+    location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
+    map_data = default_box["features"][0]
+    b = location.geometry.total_bounds
   # Get watershed boundary
   sql = """
   SELECT * FROM "wbdhu12" WHERE ST_INTERSECTS(ST_GeomFromText('POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))', 4269), "wbdhu12"."wkb_geometry");
@@ -139,7 +141,7 @@ def main():
       m = folium.Map(tiles = "cartodb positron")
       
       #Set watershed
-      geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
+      geo_j = folium.GeoJson(map_data)
       geo_j.add_to(m)
       gj = folium.GeoJson(
         watersheds,

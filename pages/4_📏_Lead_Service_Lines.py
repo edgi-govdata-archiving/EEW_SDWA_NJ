@@ -72,13 +72,16 @@ def add_spatial_data(url, name, projection=4326):
 # Load and join lead/service area data
 with st.spinner(text="Loading data..."):
   service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
+  # Convert st.session_state["last_active_drawing"]
   try:
-    location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]])
+    location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
+    map_data = st.session_state["last_active_drawing"]
   except:
-    st.error("### Error: Did you forget to start on the 'Statewide Overview' page and/or draw a box on the 'SDWA Violations' page?")
-    st.stop()
+    default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+    location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
+    map_data = default_box["features"][0]
   # Filter to area
-  sas = service_areas[service_areas.geometry.intersects(location.geometry[0]) ] # Service areas in the place
+  sas = service_areas[service_areas.geometry.intersects(location.geometry[0])] # Service areas in the place
   sas.set_index("PWID", inplace=True)
   # Get lead data
   lead = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
@@ -95,7 +98,14 @@ with st.spinner(text="Loading data..."):
 
 # Streamlit section
 # Map
-def main():  
+def main():
+  if "bounds" not in st.session_state:
+    st.session_state["bounds"] = None
+  if "markers" not in st.session_state:
+    st.session_state["markers"] = []
+  if "last_active_drawing" not in st.session_state:
+    st.session_state["last_active_drawing"] = None
+
   c1 = st.container()
   c2 = st.container()
 
@@ -122,7 +132,7 @@ def main():
         # set colorscale
         return "#d3d3d3" if feature["properties"]["Measurement (service lines)"] is None else colorscale(feature["properties"]["Measurement (service lines)"])
 
-      geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
+      geo_j = folium.GeoJson(map_data)
       geo_j.add_to(m)
       gj = folium.GeoJson(
         lead,
@@ -130,7 +140,7 @@ def main():
         popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
         ).add_to(m) #.add_to(fg)
       
-      for marker in st.session_state["markers"]:
+      for marker in st.session_state["markers"]: # If there are markers from the Violations page, map them
         m.add_child(marker)
 
       out = st_folium(

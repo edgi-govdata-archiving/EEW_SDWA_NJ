@@ -119,9 +119,11 @@ with st.spinner(text="Loading data..."):
 # Convert st.session_state["last_active_drawing"]
 try:
   location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
+  map_data = st.session_state["last_active_drawing"]
 except:
-  st.error("### Error: You must start on the 'Statewide Overview' page and draw a box on the 'SDWA Violations' page in order to proceed.")
-  st.stop()
+  default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+  location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
+  map_data = default_box["features"][0]
 
 # Filter to area
 bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
@@ -178,14 +180,14 @@ def main():
         return "#d3d3d3" if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
 
       prettier_map_labels = ejdesc + ":&nbsp" # Adds a space between the field name and value
-      geo_j = folium.GeoJson(st.session_state["last_active_drawing"])
+      geo_j = folium.GeoJson(map_data)
       geo_j.add_to(m)
       gj = folium.GeoJson(
         bgs,
         style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1},
         popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
       ).add_to(m) 
-      for marker in st.session_state["markers"]:
+      for marker in st.session_state["markers"]: # If there are markers (from the Violations page), map them
         m.add_child(marker)
 
       out = st_folium(
