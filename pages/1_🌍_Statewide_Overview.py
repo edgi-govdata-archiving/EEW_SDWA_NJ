@@ -70,7 +70,7 @@ def main():
       | Feature | What it means |
       |------|---------------|
       | Outline - Solid | PWS that draw from surface water |
-      | Outline - Dashed | PWS that draw from groundwater |
+      | Outline - None | PWS that draw from groundwater |
       | Color - Blue | Community Water Systems |
       | Color - Yellow | Transient Non-Community Water Systems |
       | Color - Green | Non-Transient, Non-Community Water Systems |

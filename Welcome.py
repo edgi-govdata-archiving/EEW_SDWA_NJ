@@ -104,7 +104,7 @@ def get_data(query):
     }
     for key, value in source_acronym_dict.items():
       sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
-    s = {"Groundwater": True, "Surface water": False}
+    s = {"Groundwater": False, "Surface water": True}
 
     type_acronym_dict = {
       'NTNCWS': 'Non-Transient, Non-Community Water System',
