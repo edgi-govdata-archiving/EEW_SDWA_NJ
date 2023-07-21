@@ -172,7 +172,7 @@ def main():
       m = folium.Map(tiles="cartodb positron")
       m.fit_bounds(bounds)
       colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
-      colorscale.width=500
+      colorscale.width=750
       st.write(colorscale)
       def style(feature):
         # choropleth approach
@@ -192,6 +192,7 @@ def main():
 
       out = st_folium(
         m,
+        width = 750,
         returned_objects=[]
       )
     

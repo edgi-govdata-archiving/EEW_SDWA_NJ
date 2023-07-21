@@ -56,6 +56,7 @@ def main():
         m.add_child(marker)
       out = st_folium(
         m,
+        width = 750,
         returned_objects=[]
       )
 

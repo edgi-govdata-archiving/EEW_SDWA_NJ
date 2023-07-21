@@ -124,6 +124,7 @@ def main():
 
       out = st_folium(
         m,
+        width = 750,
         returned_objects=["last_active_drawing"]
       )
 
