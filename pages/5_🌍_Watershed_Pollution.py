@@ -56,8 +56,11 @@ with st.spinner(text="Loading data..."):
     default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
     location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
     map_data = default_box["features"][0]
-  # Get watershed boundary
+  # Set bounds
   b = location.geometry.total_bounds
+  x1,y1,x2,y2 = location.geometry.total_bounds
+  bounds = [[y1, x1], [y2, x2]]
+  # Get watershed boundary
   sql = """
   SELECT * FROM "wbdhu12" WHERE ST_INTERSECTS(ST_GeomFromText('POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))', 4269), "wbdhu12"."wkb_geometry");
   """.format(b[0], b[1], 
@@ -69,13 +72,9 @@ with st.spinner(text="Loading data..."):
   for i,w in watersheds.iterrows():
     if len(str(w["huc12"]))<12:
       w["huc12"] = "0"+str(w["huc12"])
-
-  # Set new bounds
   watersheds['geometry'] = geopandas.GeoSeries.from_wkb(watersheds['wkb_geometry'])
   watersheds.drop("wkb_geometry", axis=1, inplace=True)
   watersheds = geopandas.GeoDataFrame(watersheds, crs=4269)
-  x1,y1,x2,y2 = watersheds.geometry.total_bounds
-  bounds = [[y1, x1], [y2, x2]]
   # Save data for later
   watershed_data = watersheds
   # Get watershed ids
@@ -137,46 +136,64 @@ def main():
   with c3:
     st.markdown("""
       The map below shows the watersheds for the place you selected and the industrial facilities within those watersheds that reported releasing the selected pollutant.""")
-    with st.spinner(text="Loading interactive map..."):
-      m = folium.Map(tiles = "cartodb positron")
-      
-      #Set watershed
-      geo_j = folium.GeoJson(map_data)
-      geo_j.add_to(m)
-      gj = folium.GeoJson(
-        watersheds,
-        style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1},
-        popup=folium.GeoJsonPopup(fields=['huc12'])
-        ).add_to(m)
+    col1, col2 = st.columns(2) 
+    with col1:
+      with st.spinner(text="Loading interactive map..."):
+        m = folium.Map(tiles = "cartodb positron")
+        
+        #Set watershed
+        geo_j = folium.GeoJson(map_data)
+        geo_j.add_to(m)
+        gj = folium.GeoJson(
+          watersheds,
+          style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1, "color": "white"},
+          popup=folium.GeoJsonPopup(fields=['huc12'])
+          ).add_to(m)
 
-      # Set facility markers
-      filtered_data = dmr.loc[dmr["PARAMETER_DESC"] == pollutant]
-      filtered_data = filtered_data.drop_duplicates(subset="EXTERNAL_PERMIT_NMBR")
-      markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
-      popup=f"{mark.FAC_NAME}",
-      radius = 6, fill_color = "orange", weight=1
-      ) for index,mark in filtered_data.iterrows() if not pd.isna(mark["FAC_LAT"])]
-      for marker in markers:
-        m.add_child(marker)
+        # Set facility markers
+        filtered_data = dmr.loc[dmr["PARAMETER_DESC"] == pollutant]
+        #filtered_data = filtered_data.drop_duplicates(subset="EXTERNAL_PERMIT_NMBR")
+        context = filtered_data[["EXTERNAL_PERMIT_NMBR", "FAC_LAT", "FAC_LONG", "FAC_NAME", "FAC_SIC_CODES", "FAC_NAICS_CODES"]]
+        context.set_index("EXTERNAL_PERMIT_NMBR", inplace = True)
+        filtered_data = filtered_data.groupby(by=["EXTERNAL_PERMIT_NMBR"])[["EXTERNAL_PERMIT_NMBR"]].count().rename(columns={"EXTERNAL_PERMIT_NMBR": "COUNT"}) # Group data
+        filtered_data = context.join(filtered_data).reset_index().drop_duplicates(subset=["EXTERNAL_PERMIT_NMBR"])
+        filtered_data['quantile'] = pd.qcut(filtered_data["COUNT"], 4, labels=False, duplicates="drop")
+        scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
+        markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
+        popup =folium.Popup(mark["FAC_NAME"] + "<br><b>Reports of "+pollutant+" in 2022: </b>"+str(mark["COUNT"])+"<br><b>Industry codes (NAICS, SICS): </b>"+str(mark["FAC_SIC_CODES"])+"/"+str(mark["FAC_NAICS_CODES"])),
+        radius = scale[mark["quantile"]], fill_color = "orange", weight=1
+        ) for index,mark in filtered_data.iterrows() if not pd.isna(mark["FAC_LAT"])]
+        for marker in markers:
+          m.add_child(marker)
 
-      m.fit_bounds(bounds)
+        m.fit_bounds(bounds)
 
-      out = st_folium(
-        m,
-        returned_objects=[]
-      )
+        out = st_folium(
+          m,
+          width = 750,
+          returned_objects=[]
+        )
 
-      #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
-      units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
-      st.altair_chart(
-        alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022 by facilities in selected watersheds').mark_bar().encode(
-          x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
-          y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
-        ),
-      use_container_width=True
-      )
+        #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
+        units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
+        st.altair_chart(
+          alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022 by facilities in selected watersheds').mark_bar().encode(
+            x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
+            y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
+          ),
+        use_container_width=True
+        )
 
-    st.markdown(":face_with_monocle: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
+    with col2:
+      st.markdown("""
+      ### Map Legend
+
+      | Feature | What it means |
+      |------|---------------|
+      | Size | Number of reports of the selected pollutant in 2022 - the larger the circle, the more violations |    
+    """)
+
+  st.markdown(":face_with_monocle: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
 
   with c1:
     st.markdown("""
