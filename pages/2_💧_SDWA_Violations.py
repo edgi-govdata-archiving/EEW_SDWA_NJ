@@ -56,7 +56,7 @@ with st.spinner(text="Loading data..."):
     sdwa = st.session_state["sdwa"]
     sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   except:
-    st.error("### Error: Please start on the 'Statewide Overview' page.")
+    st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
 
 # Streamlit section
@@ -86,13 +86,16 @@ def main():
         edit_options={"edit": False, "remove": False}
       ).add_to(m)
 
-      if st.session_state["last_active_drawing"] is not None: # user has drawn a box
+      if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): # else statement has already ran
+        print("IF_1")
+        # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
         geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
         geo_j.add_to(m)
       else: # default - no box drawn yet
+        print("ELSE")
         # draw box
         default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-        st.session_state["last_active_drawing"] = default_box["features"][0]
+        #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
         # add to map
         geo_j = folium.GeoJson(data=default_box)
         geo_j.add_to(m)
@@ -148,10 +151,11 @@ def main():
     st.altair_chart(
       alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
         x = alt.X("COUNT", title = "Number of violations"),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title="Facility").sort('-x') # Sort horizontal bar chart
+        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
       ),
     use_container_width=True
     )
+
   with c3:
     st.markdown("""
                 # Health-Based Violations in Selected Area
@@ -173,19 +177,22 @@ def main():
     st.markdown("""
       :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
       
-      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).")
+      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
-  if ((out["last_active_drawing"]) 
-    and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
-    and (out["last_active_drawing"]["geometry"]["type"] != "Point")
+  
+  if (
+    (out["last_active_drawing"]) and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
   ):
-    st.session_state["last_active_drawing"] = out["last_active_drawing"]
+    print("IF_2")
     bounds = out["last_active_drawing"]
     bounds = geopandas.GeoDataFrame.from_features([bounds])
     bounds.set_crs(4269, inplace=True)
     if bounds.geometry.area[0] < .07:
       x1,y1,x2,y2 = bounds.geometry.total_bounds
       st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+
+      # Keep this drawing
+      st.session_state["last_active_drawing"] = out["last_active_drawing"]
 
       # Get data
       these_pws = geopandas.clip(sdwa, bounds.geometry)
@@ -199,12 +206,9 @@ def main():
         radius = 6, fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
       st.session_state["markers"] = markers
       st.experimental_rerun()
-
     else:
       with c1:
         st.markdown("### You've drawn a big area! Try drawing a smaller one.")
-      st.session_state["last_active_drawing"] = None
-      out["last_active_drawing"] = None
 
 if __name__ == "__main__":
   main()
