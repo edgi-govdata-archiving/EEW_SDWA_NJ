@@ -51,11 +51,20 @@ def main():
     def make_map():
       m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, tiles="cartodb positron")
 
-      #add markers
+      # Add polygons representing PSAs
+      #gj = folium.GeoJson(
+      #  st.session_state["service_areas"],
+      #  style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .75, "weight": .5},
+      #  popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
+      #  ).add_to(m)
+
+      # Add markers representing PWS
       for marker in st.session_state["statewide_markers"]:
         m.add_child(marker)
+
       out = st_folium(
         m,
+        width = 750,
         returned_objects=[]
       )
 
@@ -65,17 +74,17 @@ def main():
         make_map()
     with col2:
       st.markdown("""
-      ### Map Legend
+        ### Map Legend
 
-      | Feature | What it means |
-      |------|---------------|
-      | Outline - Solid | PWS that draw from surface water |
-      | Outline - Dashed | PWS that draw from groundwater |
-      | Color - Blue | Community Water Systems |
-      | Color - Yellow | Transient Non-Community Water Systems |
-      | Color - Green | Non-Transient, Non-Community Water Systems |
-      | Size | PWS size, from very small to very large |    
-    """)
+        | Feature | What it means |
+        |------|---------------|
+        | Outline - Solid | PWS that draw from surface water |
+        | Outline - None | PWS that draw from groundwater |
+        | Color - Blue | Community Water Systems |
+        | Color - Yellow | Transient Non-Community Water Systems |
+        | Color - Green | Non-Transient, Non-Community Water Systems |
+        | Size | PWS size, from very small to very large |    
+      """)
 
     st.markdown("""
       ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
@@ -93,7 +102,8 @@ def main():
     """)
 
     def chart_category(selected_category):
-      counts = st.session_state["sdwa"].groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
+      data = st.session_state["sdwa"].loc[st.session_state["sdwa"]["FISCAL_YEAR"] == 2021] # This ensures we're only summarizing currently operating facilities and not duplicating them
+      counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)
       counts = counts.rename_axis(selected_category).reset_index()

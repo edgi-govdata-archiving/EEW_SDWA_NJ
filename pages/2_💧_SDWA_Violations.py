@@ -26,7 +26,7 @@ st.markdown(""" # Search for Public Water Systems and Find Violations
 
   The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and draw a different box.
 
-  ### Select an area on the interactive map below in order to proceed.
+  ### Draw an area on the interactive map below, or use the default pre-drawn box.
 """)
 
 @st.cache_data
@@ -50,11 +50,46 @@ def get_data_from_ids(table, key, list_of_ids):
   data = get_data(sql)
   return data
 
+# Make the maps' markers
+def marker_maker(data):
+  """
+  data: SDWA violations dataframe
+  """
+  # Process data for mapping - drop duplicates (multiple violations) to just get one marker per facility. Size marker by violation count.
+  context = data[["PWSID", "PWS_NAME", "PWS_TYPE_CODE", "PWS_SIZE", "SOURCE_WATER", "FAC_LAT", "FAC_LONG"]]
+  context.set_index("PWSID", inplace = True)
+  data = data.groupby(by=["PWSID"])[["PWSID"]].count().rename(columns={"PWSID": "COUNT"}) # Group data
+  data = context.join(data).reset_index().drop_duplicates(subset=["PWSID"])
+  # String manipulations to make output more readable (CURRENTLY DONE ON OTHER DATA IN WELCOME - WOULD BE GREAT TO NOT DUPLICATE THIS....)
+  source_acronym_dict = {
+    'GW': 'Groundwater',
+    'SW': 'Surface water'
+  }
+  for key, value in source_acronym_dict.items():
+    data['SOURCE_WATER'] = data['SOURCE_WATER'].str.replace(key, value)
+  #s = {"Groundwater": False, "Surface water": True}
+  type_acronym_dict = {
+    'NTNCWS': 'Non-Transient, Non-Community Water System',
+    'TNCWS': 'Transient Non-Community Water System',
+    'CWS': 'Community Water System'
+  }
+  for key, value in type_acronym_dict.items():
+    data['PWS_TYPE_CODE'] = data['PWS_TYPE_CODE'].str.replace(key, value)
+  #t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
+  data['quantile'] = pd.qcut(data["COUNT"], 4, labels=False, duplicates="drop")
+  scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
+  # Map PWS
+  markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
+    popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Violations since 2001:</b> '+str(mark["COUNT"])+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["PWS_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+    radius=scale[mark["quantile"]], fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
+  return markers 
+
 # Reload, but don't map, PWS
 with st.spinner(text="Loading data..."):
   try:
     sdwa = st.session_state["sdwa"]
     sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+    psa = st.session_state["service_areas"]
   except:
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
@@ -70,63 +105,77 @@ def main():
     st.session_state["data"] = None
   if "bounds" not in st.session_state:
     st.session_state["bounds"] = None
+  if "psa_gdf" not in st.session_state:
+    st.session_state["psa_gdf"] = None
 
   c1 = st.container()
   c2 = st.container()
   c3 = st.container()
 
   with c1:
+    col1, col2 = st.columns(2) 
+    m = folium.Map(tiles="cartodb positron")
 
-    with st.spinner(text="Loading interactive map..."):
-      m = folium.Map(tiles="cartodb positron")
+    Draw(
+      export=False,
+      draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
+      edit_options={"edit": False, "remove": False}
+    ).add_to(m)
 
-      Draw(
-        export=False,
-        draw_options={"polyline": False, "circle": False, "marker": False, "circlemarker": False},
-        edit_options={"edit": False, "remove": False}
+    # Else statement has already ran
+    if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): 
+      # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
+      geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
+      geo_j.add_to(m)
+
+    # Default - no box drawn yet
+    else:
+      # Draw box
+      default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+      #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
+      # Add box to map
+      folium.GeoJson(data=default_box).add_to(m)
+      # set bounds
+      bounds = geopandas.GeoDataFrame.from_features(default_box)
+      bounds.set_crs(4326, inplace=True)
+      x1,y1,x2,y2 = bounds.geometry.total_bounds
+      st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+      # Get PSAs
+      st.session_state["psa_gdf"] = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
+      # Get PWS
+      these_pws = geopandas.clip(sdwa, bounds.geometry)
+      these_pws = list(these_pws["PWSID"].unique())
+      data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+      st.session_state["data"] = data # Save full data for charts
+      # Process data, make markers
+      st.session_state["markers"] = marker_maker(data)  
+
+    if st.session_state["psa_gdf"].empty:
+      pass
+    else:
+      folium.GeoJson(
+        st.session_state["psa_gdf"],
+        style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .25, "weight": 1, "color": "white"},
+        popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
       ).add_to(m)
 
-      if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): # else statement has already ran
-        print("IF_1")
-        # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
-        geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
-        geo_j.add_to(m)
-      else: # default - no box drawn yet
-        print("ELSE")
-        # draw box
-        default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-        #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
-        # add to map
-        geo_j = folium.GeoJson(data=default_box)
-        geo_j.add_to(m)
-        # set bounds
-        bounds = geopandas.GeoDataFrame.from_features(default_box)
-        bounds.set_crs(4326, inplace=True)
-        x1,y1,x2,y2 = bounds.geometry.total_bounds
-        st.session_state["bounds"] = [[y1, x1], [y2, x2]]
-        # Get PWS
-        these_pws = geopandas.clip(sdwa, bounds.geometry)
-        these_pws = list(these_pws["PWSID"].unique())
-        data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
-        st.session_state["data"] = data
-        markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
-          popup = folium.Popup(
-          mark["FAC_NAME"] + "<br>"
-          ), #PWS_NAME
-          radius = 6, fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
-        st.session_state["markers"] = markers
+    for marker in st.session_state["markers"]:
+      m.add_child(marker)
 
-      for marker in st.session_state["markers"]:
-        m.add_child(marker)
+    if st.session_state["bounds"]:
+      m.fit_bounds(st.session_state["bounds"])
 
-      if st.session_state["bounds"]:
-        m.fit_bounds(st.session_state["bounds"])
+  with col2:
+    st.markdown("""
+      ### Map Legend
 
-      out = st_folium(
-        m,
-        returned_objects=["last_active_drawing"]
-      )
+      | Feature | What it means |
+      |------|---------------|
+      | Size | Number of violations since 2001 - the larger the circle, the more violations |    
+    """)
 
+
+  with c2:
     # Manipulate data
     try:
       counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
@@ -141,7 +190,6 @@ def main():
       counts = []
       violation_type = []
 
-  with c2:
     st.markdown("""
       # Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area
                 
@@ -158,13 +206,13 @@ def main():
 
   with c3:
     st.markdown("""
-                # Health-Based Violations in Selected Area
+    # Health-Based Violations in Selected Area
 
-                Some violations are classified as "health-based," meaning that contaminants or disinfectants have been reported in the water above the maximum allowed amounts and may cause health concerns.
+    Some violations are classified as "health-based," meaning that contaminants or disinfectants have been reported in the water above the maximum allowed amounts and may cause health concerns.
 
-                Other violations are classed as more administrative, such as a failure to test the water, or failure to notify the public when a risk to public health has been found.
+    Other violations are classed as more administrative, such as a failure to test the water, or failure to notify the public when a risk to public health has been found.
 
-                """)
+    """)
     st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
     #st.dataframe(violation_type)
     st.altair_chart(
@@ -179,36 +227,42 @@ def main():
       
       :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
-  
+
+  with col1:
+    with st.spinner(text="Loading interactive map..."):
+      out = st_folium(
+        m,
+        width = 750,
+        returned_objects=["last_active_drawing"]
+      )
+
   if (
     (out["last_active_drawing"]) and (out["last_active_drawing"] != st.session_state["last_active_drawing"]) 
   ):
-    print("IF_2")
     bounds = out["last_active_drawing"]
     bounds = geopandas.GeoDataFrame.from_features([bounds])
     bounds.set_crs(4269, inplace=True)
     if bounds.geometry.area[0] < .07:
       x1,y1,x2,y2 = bounds.geometry.total_bounds
       st.session_state["bounds"] = [[y1, x1], [y2, x2]]
-
+      # Get PSAs
+      psa_gdf = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
+      st.session_state["psa_gdf"] = psa_gdf
       # Keep this drawing
       st.session_state["last_active_drawing"] = out["last_active_drawing"]
-
       # Get data
       these_pws = geopandas.clip(sdwa, bounds.geometry)
       these_pws = list(these_pws["PWSID"].unique())
       data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
       st.session_state["data"] = data
-      markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
-        popup = folium.Popup(
-        mark["FAC_NAME"] + "<br>"
-        ), #PWS_NAME
-        radius = 6, fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
-      st.session_state["markers"] = markers
+      # Process data, make markers for mapping
+      st.session_state["markers"] = marker_maker(data)
+      # Refresh
       st.experimental_rerun()
     else:
-      with c1:
-        st.markdown("### You've drawn a big area! Try drawing a smaller one.")
+      with col2:
+        st.error("### You've drawn a big area! Try drawing a smaller one.")
+
 
 if __name__ == "__main__":
   main()
