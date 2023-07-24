@@ -95,37 +95,8 @@ def get_data(query):
     data_location = url + urllib.parse.quote_plus(query) + '&pg'
     data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
 
-    st.dataframe(data)
-    # Map all SDWA PWS
     sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
-    # String manipulations to make output more readable
-    source_acronym_dict = {
-      'GW': 'Groundwater',
-      'SW': 'Surface water'
-    }
-    for key, value in source_acronym_dict.items():
-      sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
-    s = {"Groundwater": False, "Surface water": True}
-
-    type_acronym_dict = {
-      'NTNCWS': 'Non-Transient, Non-Community Water System',
-      'TNCWS': 'Transient Non-Community Water System',
-      'CWS': 'Community Water System'
-    }
-    for key, value in type_acronym_dict.items():
-      sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
-    t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
-       
-    r = {"Very Small": 2, "Small": 6, "Medium": 12, "Large": 20, "Very Large": 32}
-
-    ## Convert to circle markers
-    sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
-
-    markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in sdwa_circles.iterrows() if not mark.geometry.is_empty]
-
-    return sdwa, markers
+    return sdwa
   
   except:
     with c1:
@@ -160,12 +131,10 @@ def add_spatial_data(url, name, projection=4326):
 # Initial query (NJ PWS)
 with st.spinner(text="Loading data..."):
   # Load PWS data
-  sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
-  sdwa, markers = get_data(sql)
+  sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "FAC_STATE" = \'NJ\' and "FAC_CITY" = \'TRENTON\'' # About 3500 = 40000 records for multiple FYs #'
+  sdwa = get_data(sql)
   if "sdwa" not in st.session_state:
-    st.session_state["sdwa"] = sdwa # save for later
-  if "statewide_markers" not in st.session_state:
-    st.session_state["statewide_markers"] = markers
+    st.session_state["sdwa"] = sdwa # save for laterst.session_state["service_areas"] = service_areas
 
   # Load purveyor service area (PSA) data
   service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
