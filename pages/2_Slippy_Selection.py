@@ -70,6 +70,10 @@ def main():
 
     def change(bounds):
       st.session_state['bounds'] = bounds
+      if output["zoom"] < 11:
+        with c2:
+          st.error("Try zooming in a bit more. There's too much data to show for this big of an area.")
+          st.stop()
       # Create a feature from bounds
       feature = {
       "type": "FeatureCollection",
@@ -125,7 +129,7 @@ def main():
       st.session_state["markers"] = markers
       st.experimental_rerun()
 
-    m = folium.Map(location=[40.21932319852321, -74.75292012500869], zoom_start=13, min_zoom = 11, max_zoom=15)
+    m = folium.Map(location=[40.21932319852321, -74.75292012500869], zoom_start=13, min_zoom = 8, max_zoom=15)
     fg = folium.FeatureGroup(name="data")
     
     if st.session_state["psa_gdf"] is None:
@@ -144,7 +148,7 @@ def main():
     c1, c2 = st.columns(2)
     
     with c1:
-      output = st_folium(m, width=700, height=500, feature_group_to_add=fg, returned_objects=["bounds"]) #
+      output = st_folium(m, width=700, height=500, feature_group_to_add=fg, returned_objects=["bounds", "zoom"]) #
 
     # if bounds change
     if (output["bounds"] and (output["bounds"] != st.session_state["bounds"])):
