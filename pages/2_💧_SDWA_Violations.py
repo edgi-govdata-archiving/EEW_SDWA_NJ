@@ -93,8 +93,6 @@ def main():
 
   c1 = st.container()
   c2 = st.container()
-  c3 = st.container()
-  c4 = st.container()
 
   with c1:
     col1, col2 = st.columns(2) 
@@ -159,47 +157,36 @@ def main():
   with c2:
     # Manipulate data
     try:
-      counts = st.session_state["violations_data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
+      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "HEALTH_BASED"])[["FAC_NAME"]].count()
       counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
-      counts = counts.sort_values(by="COUNT", ascending=False)
-      violation_type = st.session_state["violations_data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
-      violation_type.index = violation_type.index.str.replace('Y', 'Yes')
-      violation_type.index = violation_type.index.str.replace('N', 'No')
-      violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
-      violation_type = violation_type.sort_values(by="COUNT", ascending=False)
+      counts = counts.sort_values(by="FAC_NAME", ascending=False)
+      #violation_type = st.session_state["violations_data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
+      #violation_type.index = violation_type.index.str.replace('Y', 'Yes')
+      #violation_type.index = violation_type.index.str.replace('N', 'No')
+      #violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
+      #violation_type = violation_type.sort_values(by="COUNT", ascending=False)
     except:
       counts = []
-      violation_type = []
+      #violation_type = []
 
     st.markdown("""
       # Safe Drinking Water Act (SDWA) Violations by Public Water Systems in Selected Area
                 
       There are several types of SDWA violation, ranging from "acute health violations" that may immediately cause illness, to failures to monitor, to failures to notify the public, and more.
       """)
-    #st.dataframe(counts) 
-    st.altair_chart(
-      alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
-        x = alt.X("COUNT", title = "Number of violations"),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
-      ),
-    use_container_width=True
-    )
-
-  with c3:
     st.markdown("""
-    # Health-Based Violations in Selected Area
-
     Some violations are classified as "health-based," meaning that contaminants or disinfectants have been reported in the water above the maximum allowed amounts and may cause health concerns.
 
     Other violations are classed as more administrative, such as a failure to test the water, or failure to notify the public when a risk to public health has been found.
 
     """)
     st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
-    #st.dataframe(violation_type)
+    #st.dataframe(counts) 
     st.altair_chart(
-      alt.Chart(violation_type.reset_index(), title = 'Number of SDWA health-based violations by facility, 2001-present').mark_bar().encode(
+      alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
         x = alt.X("COUNT", title = "Number of violations"),
-        y = alt.Y('HEALTH_BASED', axis=alt.Axis(labelLimit = 500), title="Health-Based Violation?").sort('-x') # Sort horizontal bar chart
+        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x'), # Sort horizontal bar chart
+        color = 'HEALTH_BASED'
       ),
     use_container_width=True
     )
