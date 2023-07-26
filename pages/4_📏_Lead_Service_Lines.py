@@ -45,44 +45,27 @@ st.markdown("""
 
   """)
 
-@st.cache_data
-def add_spatial_data(url, name, projection=4326):
-  """
-  Gets external geospatial data
-  
-  Parameters
-  ----------
-  url: a zip of shapefile (in the future, extend to geojson)
-  name: a string handle for the data files
-  projection (optional): an EPSG projection for the spatial dataa
-
-  Returns
-  -------
-  sd: spatial data reads ]as a geodataframe and projected to a specified projected coordinate system, or defaults to GCS
-  
-  """
-
-  r = requests.get(url) 
-  z = zipfile.ZipFile(io.BytesIO(r.content))
-  z.extractall(name)
-  sd = geopandas.read_file(""+name+"/")
-  sd.to_crs(crs=projection, inplace=True) # transform to input projection, defaults to WGS GCS
-  return sd
-
 # Load and join lead/service area data
 with st.spinner(text="Loading data..."):
-  service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
   # Convert st.session_state["last_active_drawing"]
+  try:
+    service_areas = st.session_state["service_areas"]
+  except:
+    st.error("### Error: Please start on the 'Welcome' page.")
+    st.stop() 
   try:
     location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
     map_data = st.session_state["last_active_drawing"]
   except:
-    default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-    location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
-    map_data = default_box["features"][0]
+    try:
+      default_box = st.session_state["default_box"] # Assumes someone has landed on welcome.py already
+      location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
+      map_data = default_box["features"][0]
+    except:
+      st.error("### Error: Please start on the 'Welcome' page.")
+      st.stop()
   # Filter to area
   sas = service_areas[service_areas.geometry.intersects(location.geometry[0])] # Service areas in the place
-  sas.set_index("PWID", inplace=True)
   # Get lead data
   lead = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
     dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
@@ -99,12 +82,10 @@ with st.spinner(text="Loading data..."):
 # Streamlit section
 # Map
 def main():
-  if "bounds" not in st.session_state:
-    st.session_state["bounds"] = None
-  if "markers" not in st.session_state:
-    st.session_state["markers"] = []
   if "last_active_drawing" not in st.session_state:
     st.session_state["last_active_drawing"] = None
+  if "violations_markers" not in st.session_state:
+    st.session_state["violations_markers"] = []
 
   c1 = st.container()
   c2 = st.container()
@@ -143,7 +124,7 @@ def main():
           popup=folium.GeoJsonPopup(fields=['Utility', "Measurement (service lines)"])
           ).add_to(m) #.add_to(fg)
         
-        for marker in st.session_state["markers"]: # If there are markers from the Violations page, map them
+        for marker in st.session_state["violations_markers"]: # If there are markers from the Violations page, map them
           m.add_child(marker)
 
         out = st_folium(

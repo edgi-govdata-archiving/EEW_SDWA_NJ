@@ -121,9 +121,13 @@ try:
   location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
   map_data = st.session_state["last_active_drawing"]
 except:
-  default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-  location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
-  map_data = default_box["features"][0]
+  try:
+    default_box = st.session_state["default_box"] # Assumes someone has landed on welcome.py already
+    location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
+    map_data = default_box["features"][0]
+  except:
+    st.error("### Error: Please start on the 'Welcome' page.")
+    st.stop()
 
 # Filter to area
 bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
@@ -137,16 +141,12 @@ bgs = json.loads(bgs.to_json())
 # Streamlit section
 # Map
 def main():
-  if "bounds" not in st.session_state:
-    st.session_state["bounds"] = None
-  if "markers" not in st.session_state:
-    st.session_state["markers"] = []
-  if "last_active_drawing" not in st.session_state:
-    st.session_state["last_active_drawing"] = None
   if "bgs" not in st.session_state:
-    st.session_state["bgs"] = []
+    st.session_state["bgs"] = bgs
   if "ejvar" not in st.session_state:
     st.session_state["ejvar"] = None
+  if "violations_markers" not in st.session_state:
+    st.session_state["violations_markers"] = []
   
   c1 = st.container()
   c2 = st.container()
@@ -189,7 +189,7 @@ def main():
           style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
           popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
         ).add_to(m) 
-        for marker in st.session_state["markers"]: # If there are markers (from the Violations page), map them
+        for marker in st.session_state["violations_markers"]: # If there are local markers (from the Violations page), map them
           m.add_child(marker)
 
         out = st_folium(

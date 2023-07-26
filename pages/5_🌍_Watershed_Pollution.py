@@ -53,9 +53,13 @@ with st.spinner(text="Loading data..."):
     location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
     map_data = st.session_state["last_active_drawing"]
   except:
-    default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-    location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
-    map_data = default_box["features"][0]
+    try:
+      default_box = st.session_state["default_box"] # Assumes someone has landed on welcome.py already
+      location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
+      map_data = default_box["features"][0]
+    except:
+      st.error("### Error: Please start on the 'Welcome' page.")
+      st.stop()
   # Set bounds
   b = location.geometry.total_bounds
   x1,y1,x2,y2 = location.geometry.total_bounds

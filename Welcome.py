@@ -94,39 +94,8 @@ def get_data(query):
     url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
     data_location = url + urllib.parse.quote_plus(query) + '&pg'
     data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
-
-    st.dataframe(data)
-    # Map all SDWA PWS
     sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
-    # String manipulations to make output more readable
-    source_acronym_dict = {
-      'GW': 'Groundwater',
-      'SW': 'Surface water'
-    }
-    for key, value in source_acronym_dict.items():
-      sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
-    s = {"Groundwater": False, "Surface water": True}
-
-    type_acronym_dict = {
-      'NTNCWS': 'Non-Transient, Non-Community Water System',
-      'TNCWS': 'Transient Non-Community Water System',
-      'CWS': 'Community Water System'
-    }
-    for key, value in type_acronym_dict.items():
-      sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
-    t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
-       
-    r = {"Very Small": 2, "Small": 6, "Medium": 12, "Large": 20, "Very Large": 32}
-
-    ## Convert to circle markers
-    sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
-
-    markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in sdwa_circles.iterrows() if not mark.geometry.is_empty]
-
-    return sdwa, markers
-  
+    return sdwa
   except:
     with c1:
       st.error("### Sorry, there's a problem getting the data.")
@@ -161,14 +130,65 @@ def add_spatial_data(url, name, projection=4326):
 with st.spinner(text="Loading data..."):
   # Load PWS data
   sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
-  sdwa, markers = get_data(sql)
-  if "sdwa" not in st.session_state:
-    st.session_state["sdwa"] = sdwa # save for later
-  if "statewide_markers" not in st.session_state:
-    st.session_state["statewide_markers"] = markers
+  sdwa = get_data(sql)
+
+  # String manipulations to make output more readable
+  source_acronym_dict = {
+    'GW': 'Groundwater',
+    'SW': 'Surface water'
+  }
+  for key, value in source_acronym_dict.items():
+    sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
+  s = {"Groundwater": False, "Surface water": True}
+
+  type_acronym_dict = {
+    'NTNCWS': 'Non-Transient, Non-Community Water System',
+    'TNCWS': 'Transient Non-Community Water System',
+    'CWS': 'Community Water System'
+  }
+  for key, value in type_acronym_dict.items():
+    sdwa['PWS_TYPE_CODE'] = sdwa['PWS_TYPE_CODE'].str.replace(key, value)
+  t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
+     
+  r = {"Very Small": 2, "Small": 6, "Medium": 12, "Large": 20, "Very Large": 32}
+
+  # Filter data for use on later pages as a default
+  default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
+  # set bounds
+  bounds = geopandas.GeoDataFrame.from_features(default_box)
+  bounds.set_crs(4326, inplace=True)
+  x1,y1,x2,y2 = bounds.geometry.total_bounds
+
+  ## Convert to circle markers
+  sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
+
+  markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
+    popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+    radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in sdwa_circles.iterrows() if not mark.geometry.is_empty]
+
+  local_sdwa_circles = sdwa_circles[sdwa_circles.geometry.intersects(bounds.geometry[0])]
+  local_markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
+    popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+    radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in local_sdwa_circles.iterrows() if not mark.geometry.is_empty]
 
   # Load purveyor service area (PSA) data
   service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
   service_areas.set_index("PWID", inplace=True)
-  if "service_areas" not in st.session_state:
+
+  # Save data
+  if "default_box" not in st.session_state: # May not need this in the future depending on the area selection approach
+    st.session_state["default_box"] = default_box
+  if "sdwa" not in st.session_state: # all SDWA PWS data
+    st.session_state["sdwa"] = sdwa
+  if "statewide_markers" not in st.session_state: # All markers for PWS
+    st.session_state["statewide_markers"] = markers
+  #if "data" not in st.session_state: # local SDWA numbers for charts
+  #  st.session_state["data"] = sdwa[sdwa.geometry.intersects(bounds.geometry[0])]
+  if "markers" not in st.session_state: # *Local* PWS for mapping defaults
+    st.session_state["markers"] = local_markers
+  if "service_areas" not in st.session_state: # All PSAs
     st.session_state["service_areas"] = service_areas
+  if "psa_gdf" not in st.session_state: # Local PSAs for mapping defaults
+    st.session_state["psa_gdf"] = service_areas[service_areas.geometry.intersects(bounds.geometry[0])] # Service areas in the place
+  if "bounds" not in st.session_state: # Default bounds
+    st.session_state["bounds"] = [[y1, x1], [y2, x2]]

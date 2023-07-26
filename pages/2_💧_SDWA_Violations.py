@@ -10,6 +10,7 @@ from streamlit_folium import st_folium
 import geopandas
 import folium
 from folium.plugins import Draw
+import branca
 import altair as alt
 
 st.set_page_config(layout="wide")
@@ -55,34 +56,17 @@ def marker_maker(data):
   """
   data: SDWA violations dataframe
   """
-  # Process data for mapping - drop duplicates (multiple violations) to just get one marker per facility. Size marker by violation count.
+  # Process data for mapping - drop duplicates (multiple violations) to just get one marker per facility. Color marker by violation count.
   context = data[["PWSID", "PWS_NAME", "PWS_TYPE_CODE", "PWS_SIZE", "SOURCE_WATER", "FAC_LAT", "FAC_LONG"]]
   context.set_index("PWSID", inplace = True)
   data = data.groupby(by=["PWSID"])[["PWSID"]].count().rename(columns={"PWSID": "COUNT"}) # Group data
   data = context.join(data).reset_index().drop_duplicates(subset=["PWSID"])
-  # String manipulations to make output more readable (CURRENTLY DONE ON OTHER DATA IN WELCOME - WOULD BE GREAT TO NOT DUPLICATE THIS....)
-  source_acronym_dict = {
-    'GW': 'Groundwater',
-    'SW': 'Surface water'
-  }
-  for key, value in source_acronym_dict.items():
-    data['SOURCE_WATER'] = data['SOURCE_WATER'].str.replace(key, value)
-  #s = {"Groundwater": False, "Surface water": True}
-  type_acronym_dict = {
-    'NTNCWS': 'Non-Transient, Non-Community Water System',
-    'TNCWS': 'Transient Non-Community Water System',
-    'CWS': 'Community Water System'
-  }
-  for key, value in type_acronym_dict.items():
-    data['PWS_TYPE_CODE'] = data['PWS_TYPE_CODE'].str.replace(key, value)
-  #t = {'Non-Transient, Non-Community Water System': "green", 'Transient Non-Community Water System': "yellow", 'Community Water System': "blue"}
-  data['quantile'] = pd.qcut(data["COUNT"], 4, labels=False, duplicates="drop")
-  scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
+  colorscale = branca.colormap.linear.Reds_05.scale(data["COUNT"].min(), data["COUNT"].max())
   # Map PWS
   markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
     popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Violations since 2001:</b> '+str(mark["COUNT"])+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["PWS_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-    radius=scale[mark["quantile"]], fill_color="orange") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
-  return markers 
+    radius=12, fill_color=colorscale(mark["COUNT"])) for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
+  return markers, colorscale
 
 # Reload, but don't map, PWS
 with st.spinner(text="Loading data..."):
@@ -90,6 +74,7 @@ with st.spinner(text="Loading data..."):
     sdwa = st.session_state["sdwa"]
     sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
     psa = st.session_state["service_areas"]
+    default_box = st.session_state["default_box"]
   except:
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
@@ -97,23 +82,23 @@ with st.spinner(text="Loading data..."):
 # Streamlit section
 # Map
 def main():
-  if "markers" not in st.session_state:
-    st.session_state["markers"] = []
   if "last_active_drawing" not in st.session_state:
     st.session_state["last_active_drawing"] = None
-  if "data" not in st.session_state:
-    st.session_state["data"] = None
-  if "bounds" not in st.session_state:
-    st.session_state["bounds"] = None
-  if "psa_gdf" not in st.session_state:
-    st.session_state["psa_gdf"] = None
+  if "violations_data" not in st.session_state:
+    st.session_state["violations_data"] = None
+  if "violations_markers" not in st.session_state:
+    st.session_state["violations_markers"] = []
+  if "violations_colorscale" not in st.session_state:
+    st.session_state["violations_colorscale"] = []
 
   c1 = st.container()
   c2 = st.container()
   c3 = st.container()
+  c4 = st.container()
 
   with c1:
     col1, col2 = st.columns(2) 
+
     m = folium.Map(tiles="cartodb positron")
 
     Draw(
@@ -123,32 +108,26 @@ def main():
     ).add_to(m)
 
     # Else statement has already ran
-    if (st.session_state["last_active_drawing"] is not None) and (st.session_state["data"] is not None): 
-      # problem is that st.session_state has been assigned default box (see below) so it's just repeating that
+    if (st.session_state["last_active_drawing"] is not None) and (st.session_state["violations_data"] is not None): 
       geo_j = folium.GeoJson(data=st.session_state["last_active_drawing"])
       geo_j.add_to(m)
 
     # Default - no box drawn yet
     else:
-      # Draw box
-      default_box = json.loads('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name": "default box"},"geometry":{"coordinates":[[[-74.28527671505785,41.002662478823],[-74.28527671505785,40.88373661477061],[-74.12408529371498,40.88373661477061],[-74.12408529371498,41.002662478823],[-74.28527671505785,41.002662478823]]],"type":"Polygon"}}]}')
-      #st.session_state["last_active_drawing"] = default_box["features"][0]  # This will ensure default loads on other pages, but it will - at least for the first custom box drawn - override the custom box
-      # Add box to map
+      # Add default box to map
       folium.GeoJson(data=default_box).add_to(m)
       # set bounds
       bounds = geopandas.GeoDataFrame.from_features(default_box)
       bounds.set_crs(4326, inplace=True)
       x1,y1,x2,y2 = bounds.geometry.total_bounds
-      st.session_state["bounds"] = [[y1, x1], [y2, x2]]
-      # Get PSAs
-      st.session_state["psa_gdf"] = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
+      #st.session_state["bounds"] = [[y1, x1], [y2, x2]]
       # Get PWS
       these_pws = geopandas.clip(sdwa, bounds.geometry)
       these_pws = list(these_pws["PWSID"].unique())
-      data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
-      st.session_state["data"] = data # Save full data for charts
+      violations_data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+      st.session_state["violations_data"] = violations_data
       # Process data, make markers
-      st.session_state["markers"] = marker_maker(data)  
+      st.session_state["violations_markers"], st.session_state["violations_colorscale"] = marker_maker(violations_data) 
 
     if st.session_state["psa_gdf"].empty:
       pass
@@ -159,11 +138,12 @@ def main():
         popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
       ).add_to(m)
 
-    for marker in st.session_state["markers"]:
+    for marker in st.session_state["violations_markers"]:
       m.add_child(marker)
 
     if st.session_state["bounds"]:
       m.fit_bounds(st.session_state["bounds"])
+
 
   with col2:
     st.markdown("""
@@ -171,17 +151,18 @@ def main():
 
       | Feature | What it means |
       |------|---------------|
-      | Size | Number of violations since 2001 - the larger the circle, the more violations |    
+      | Color | Number of violations since 2001 - the darker the shade of red, the more violations |    
     """)
-
+    st.session_state["violations_colorscale"].width = 750
+    st.write(st.session_state["violations_colorscale"])
 
   with c2:
     # Manipulate data
     try:
-      counts = st.session_state["data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
+      counts = st.session_state["violations_data"].groupby(by="FAC_NAME")[["FAC_NAME"]].count()
       counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
       counts = counts.sort_values(by="COUNT", ascending=False)
-      violation_type = st.session_state["data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
+      violation_type = st.session_state["violations_data"].groupby(by="HEALTH_BASED")[["HEALTH_BASED"]].count()
       violation_type.index = violation_type.index.str.replace('Y', 'Yes')
       violation_type.index = violation_type.index.str.replace('N', 'No')
       violation_type.rename(columns={"HEALTH_BASED": "COUNT"}, inplace=True)
@@ -244,19 +225,18 @@ def main():
     bounds.set_crs(4269, inplace=True)
     if bounds.geometry.area[0] < .07:
       x1,y1,x2,y2 = bounds.geometry.total_bounds
-      st.session_state["bounds"] = [[y1, x1], [y2, x2]]
       # Get PSAs
       psa_gdf = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
-      st.session_state["psa_gdf"] = psa_gdf
-      # Keep this drawing
-      st.session_state["last_active_drawing"] = out["last_active_drawing"]
-      # Get data
+      # Get PWS violations
       these_pws = geopandas.clip(sdwa, bounds.geometry)
       these_pws = list(these_pws["PWSID"].unique())
-      data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
-      st.session_state["data"] = data
-      # Process data, make markers for mapping
-      st.session_state["markers"] = marker_maker(data)
+      violations_data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+      # Save data
+      st.session_state["bounds"] = [[y1, x1], [y2, x2]]
+      st.session_state["psa_gdf"] = psa_gdf
+      st.session_state["last_active_drawing"] = out["last_active_drawing"]
+      st.session_state["violations_data"] = violations_data
+      st.session_state["violations_markers"], st.session_state["violations_colorscale"] = marker_maker(violations_data)
       # Refresh
       st.experimental_rerun()
     else:
