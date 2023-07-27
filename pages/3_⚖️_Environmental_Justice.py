@@ -157,6 +157,7 @@ def main():
   with st.spinner(text="Loading interactive map..."):
     with c1:
       col1, col2 = st.columns(2)
+      map_and_colorbar_widths = 500
       
       with col1:
         ejdesc = st.selectbox(
@@ -172,7 +173,7 @@ def main():
         m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Greens_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
-        colorscale.width = 750
+        colorscale.width = map_and_colorbar_widths
         st.write(colorscale)
         def style(feature):
           # choropleth approach
@@ -192,7 +193,7 @@ def main():
 
         out = st_folium(
           m,
-          width = 750,
+          width = map_and_colorbar_widths,
           returned_objects=[]
         )
         st.markdown("""
@@ -217,7 +218,7 @@ def main():
         m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Blues_05.scale(bg_data[envdesc].str.strip("%").astype(float).min(), bg_data[envdesc].str.strip("%").astype(float).max()) # 0 - 1?
-        colorscale.width = 750
+        colorscale.width = map_and_colorbar_widths
         st.write(colorscale)
         def style(feature):
           # choropleth approach
@@ -237,7 +238,7 @@ def main():
 
         out = st_folium(
           m,
-          width = 750,
+          width = map_and_colorbar_widths,
           returned_objects=[]
         )
         st.markdown("""
