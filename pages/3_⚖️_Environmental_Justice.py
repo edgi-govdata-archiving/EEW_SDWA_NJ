@@ -202,7 +202,7 @@ def main():
 
           | Feature | What it means |
           |------|---------------|
-          | Size | Number of violations since 2001 - the larger the circle, the more violations |    
+          | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
         """)
 
       with col2:
@@ -247,7 +247,7 @@ def main():
 
           | Feature | What it means |
           |------|---------------|
-          | Size | Number of violations since 2001 - the larger the circle, the more violations |    
+          | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
         """)
       
   st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
