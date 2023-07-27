@@ -216,7 +216,7 @@ def main():
     st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
     #st.dataframe(violation_type)
     st.altair_chart(
-      alt.Chart(violation_type.reset_index(), title = 'Number of SDWA health-based violations by facility, 2001-present').mark_bar().encode(
+      alt.Chart(violation_type.reset_index(), title = 'Number of SDWA health-based violations in selected area, 2001-present').mark_bar().encode(
         x = alt.X("COUNT", title = "Number of violations"),
         y = alt.Y('HEALTH_BASED', axis=alt.Axis(labelLimit = 500), title="Health-Based Violation?").sort('-x') # Sort horizontal bar chart
       ),
