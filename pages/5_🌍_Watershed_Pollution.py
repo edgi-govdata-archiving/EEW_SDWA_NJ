@@ -190,7 +190,7 @@ def main():
 
       | Feature | What it means |
       |------|---------------|
-      | Size | Number of reports of the selected pollutant in 2022 - the larger the circle, the more violations |
+      | Size | Number of reports of the selected pollutant in 2022 - the larger the circle, the more reports this facility has made of releasing this pollutant (note that this does not indicate pollutant quantity—see the chart below for that) |
   
                   
       :face_with_monocle: What are the industry codes in the popup (NAICS, SIC)? These numbers can be looked up to get a sense of what that business does. [More information.](https://www.dnb.com/resources/sic-naics-industry-codes.html)
