@@ -36,12 +36,15 @@ if redraw:
     switch_page("SDWA Violations")
 
 st.markdown("""
-## Select environmental justice measures
+  ## Select environmental justice measures
 
-Use the dropdown menu below to select an EJ measure to study. The maps show each of the census block groups 
-that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). 
-The darker the shade of the blue, the more present that measure is in the block group — 
-for example, a higher percentage minority population will appear in a darker blue.
+  Use the dropdown menus below to view measures EPA uses to calculate environmental justice.
+              
+  The maps show each of the census block groups 
+  that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). 
+  The darker the shade of the blue, the more present that measure is in the block group — 
+  for example, a higher percentage minority population will appear in a darker blue. Overlaid on the color blocks,
+  you can see safe drinking water act violations.
 """)
 
 @st.cache_data
@@ -161,6 +164,7 @@ def main():
       map_and_colorbar_widths = 500
       
       with col1:
+        st.markdown("**Select a socio-economic measure:**")
         ejdesc = st.selectbox(
           label = "Which socioeconomic measure do you want to explore?",
           options = ej_options,
@@ -197,15 +201,9 @@ def main():
           width = map_and_colorbar_widths,
           returned_objects=[]
         )
-        st.markdown("""
-          ### Map Legend
-
-          | Feature | What it means |
-          |------|---------------|
-          | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
-        """)
 
       with col2:
+        st.markdown("**Select an environmental measure:**")
         envdesc = st.selectbox(
           label = "Which environmental indicator do you want to explore?",
           options = env_options,
@@ -242,13 +240,14 @@ def main():
           width = map_and_colorbar_widths,
           returned_objects=[]
         )
-        st.markdown("""
-          ### Map Legend
+        
+  st.markdown("""
+    ### Map Legend
 
-          | Feature | What it means |
-          |------|---------------|
-          | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
-        """)
+    | Feature | What it means |
+    |------|---------------|
+    | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
+  """)
       
   st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
   st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
