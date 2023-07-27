@@ -174,15 +174,15 @@ def main():
           returned_objects=[]
         )
 
-        #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
-        units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
-        st.altair_chart(
-          alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022 by facilities in selected watersheds').mark_bar().encode(
-            x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
-            y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
-          ),
-        use_container_width=True
-        )
+      #st.dataframe(top_pollutors.loc[pollutant].sort_values(by="values", ascending=False))
+      units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
+      st.altair_chart(
+        alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022 by facilities in selected watersheds').mark_bar().encode(
+          x = alt.X("values", title = "Amount of "+pollutant+" measured as "+', '.join(units)),
+          y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x') # Sort horizontal bar chart
+        ),
+      use_container_width=True
+      )
 
     with col2:
       st.markdown("""
@@ -190,10 +190,13 @@ def main():
 
       | Feature | What it means |
       |------|---------------|
-      | Size | Number of reports of the selected pollutant in 2022 - the larger the circle, the more violations |    
+      | Size | Number of reports of the selected pollutant in 2022 - the larger the circle, the more violations |
+  
+                  
+      :face_with_monocle: What are the industry codes in the popup (NAICS, SIC)? These numbers can be looked up to get a sense of what that business does. [More information.](https://www.dnb.com/resources/sic-naics-industry-codes.html)
     """)
 
-  st.markdown(":face_with_monocle: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
+  st.markdown(":arrow_right: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
 
   with c1:
     st.markdown("""
