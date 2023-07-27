@@ -36,9 +36,15 @@ if redraw:
     switch_page("SDWA Violations")
 
 st.markdown("""
-## Select an environmental justice measure below
+  ## Select environmental justice measures
 
-Use the dropdown menu below to select an EJ measure to study.
+  Use the dropdown menus below to view measures EPA uses to calculate environmental justice.
+              
+  The maps show each of the census block groups 
+  that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). 
+  The darker the shade of the blue, the more present that measure is in the block group — 
+  for example, a higher percentage minority population will appear in a darker blue. Overlaid on the color blocks,
+  you can see safe drinking water act violations.
 """)
 
 @st.cache_data
@@ -66,30 +72,31 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # EJ parameters we are working with
+longest_definition_length = 315
 ejdefs = {
-  "MINORPCT": "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
-  "LOWINCPCT": "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
-  "LESSHSPCT": "Percent of people age 25 or older in a block group whose education is short of a high school diploma.",
-  "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.",
-  "UNDER5PCT": 'Percent of people in a block group under the age of 5.',
-  "OVER64PCT": 'Percent of people in a block group over the age of 64.',
-  #"PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure",
-  "UNEMPPCT": "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).",
-  #"VULEOPCT": "Demographic index of block group used by EPA, an average of low income and people of color populations",
-  #"DISPEO": "Intermediate variable used for calculation of demographic index",
-  #"DSLPM": "Diesel particulate matter level in air, µg/m3",
-  #"CANCER": "Lifetime cancer risk from inhalation of air toxics",
-  #"RESP": "Ratio of exposure concentration to health-based reference concentration",
-  #"PTRAF": "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)",
-  #"PWDIS": "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)",
-  #"PNPL": "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
-  #"PRMP": "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
-  #"PTSDF": "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers",
-  #"OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
-  #"PM25": "PM2.5 levels in air, µg/m3 annual avg.",
-  #"UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
+  "MINORPCT":   "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.\n",
+  "LOWINCPCT":  "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.\n" + (longest_definition_length-136)*"&nbsp;",
+  "LESSHSPCT":  "Percent of people age 25 or older in a block group whose education is short of a high school diploma.\n" + (longest_definition_length-101)*"&nbsp;",
+  "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.\n" + (longest_definition_length-270)*"&nbsp;",
+  "UNDER5PCT":  "Percent of people in a block group under the age of 5.\n" + (longest_definition_length-54)*"&nbsp;",
+  "OVER64PCT":  "Percent of people in a block group over the age of 64.\n" + (longest_definition_length-54)*"&nbsp;",
+  "UNEMPPCT":   "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).\n" + (longest_definition_length-232)*"&nbsp;",
+  "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure\n" + (longest_definition_length-86)*"&nbsp;",
+  "DSLPM":      "Diesel particulate matter level in air, µg/m3\n" + (longest_definition_length-45)*"&nbsp;",
+  "CANCER":     "Lifetime cancer risk from inhalation of air toxics\n" + (longest_definition_length-50)*"&nbsp;",
+  "RESP":       "Ratio of exposure concentration to health-based reference concentration\n" + (longest_definition_length-71)*"&nbsp;",
+  "PTRAF":      "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)\n" + (longest_definition_length-124)*"&nbsp;",
+  "PWDIS":      "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)\n" + (longest_definition_length-10)*"&nbsp;",
+  "PNPL":       "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-146)*"&nbsp;",
+  "PRMP":       "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-150)*"&nbsp;",
+  "PTSDF":      "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-129)*"&nbsp;",
+  "OZONE":      "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion\n" + (longest_definition_length-92)*"&nbsp;",
+  "PM25":       "PM2.5 levels in air, µg/m3 annual avg.\n" + (longest_definition_length-38)*"&nbsp;",
+  "UST":        "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group\n" + (longest_definition_length-159)*"&nbsp;"
 } # definitions of each parameter
-ej_parameters = ejdefs.keys() # the parameters themselves
+ej_parameters = list(ejdefs.keys()) # the parameters themselves
+socecon = ej_parameters[0:8] # socioeconomic measures
+env = ej_parameters[8:len(ej_parameters)] # environmental/health measures
 
 @st.cache_data
 def get_metadata():
@@ -99,7 +106,10 @@ columns = get_metadata()
 columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
 columns.set_index("Description", inplace = True)
 ej_dict = columns.to_dict()['GDB Fieldname']
-options = ej_dict.keys() # list of EJScreen variables that will be selected (% low income: LOWINCPCT, e.g.)
+ej_options = {k:v for k,v in ej_dict.items() if v in socecon} # socioeconomic measures
+ej_options = ej_options.keys() # list of EJScreen variables that will be selected (% low income: LOWINCPCT, e.g.)
+env_options = {k:v for k,v in ej_dict.items() if v in env} # socioeconomic measures
+env_options = env_options.keys() # list of EJScreen variables that will be selected
 ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" variable names later
 
 # Load and join census data
@@ -147,34 +157,30 @@ def main():
     st.session_state["ejvar"] = None
   if "violations_markers" not in st.session_state:
     st.session_state["violations_markers"] = []
-  
+    
   c1 = st.container()
-  c2 = st.container()
 
-  with c1:
-    ejdesc = st.selectbox(
-      label = "Which EJ measure do you want to explore?",
-      options = options,
-      label_visibility = "hidden"
-    )
-    ejvar = ej_dict[ejdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
+  with st.spinner(text="Loading interactive map..."):
+    with c1:
+      col1, col2 = st.columns(2)
+      map_and_colorbar_widths = 500
+      
+      with col1:
+        st.markdown("**Select a socio-economic measure:**")
+        ejdesc = st.selectbox(
+          label = "Which socioeconomic measure do you want to explore?",
+          options = ej_options,
+          label_visibility = "hidden"
+        )
+        ejvar = ej_dict[ejdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
 
-    st.markdown("**EPA defines this as:**")
-    st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
+        st.markdown("**EPA defines this as:**")
+        st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
 
-  with c2:
-    col1, col2 = st.columns(2)
-    st.markdown("""
-      ### Map of selected environmental justice measures by census block group
-
-      The map below shows each of the census block groups that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). The darker the shade of the blue, the more present that measure is in the block group — for example, a higher percentage minority population will appear in a darker blue.
-                """)
-    with col1:
-      with st.spinner(text="Loading interactive map..."):
-        m = folium.Map(tiles="cartodb positron")
+        m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
         m.fit_bounds(bounds)
-        colorscale = branca.colormap.linear.Blues_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
-        colorscale.width = 750
+        colorscale = branca.colormap.linear.Greens_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
+        colorscale.width = map_and_colorbar_widths
         st.write(colorscale)
         def style(feature):
           # choropleth approach
@@ -194,21 +200,59 @@ def main():
 
         out = st_folium(
           m,
-          width = 750,
+          width = map_and_colorbar_widths,
           returned_objects=[]
         )
-    with col2:
-      st.markdown("""
-        ### Map Legend
 
-        | Feature | What it means |
-        |------|---------------|
-        | Size | Number of violations since 2001 - the larger the circle, the more violations |    
-      """)
+      with col2:
+        st.markdown("**Select an environmental measure:**")
+        envdesc = st.selectbox(
+          label = "Which environmental indicator do you want to explore?",
+          options = env_options,
+          label_visibility = "hidden"
+        )
+        ejvar = ej_dict[envdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
+
+        st.markdown("**EPA defines this as:**")
+        st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
+
+        m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
+        m.fit_bounds(bounds)
+        colorscale = branca.colormap.linear.Blues_05.scale(bg_data[envdesc].str.strip("%").astype(float).min(), bg_data[envdesc].str.strip("%").astype(float).max()) # 0 - 1?
+        colorscale.width = map_and_colorbar_widths
+        st.write(colorscale)
+        def style(feature):
+          # choropleth approach
+          # set colorscale
+          return "#d3d3d3" if feature["properties"][envdesc] is None else colorscale(float(feature["properties"][envdesc].strip("%")))
+
+        prettier_map_labels = envdesc + ":&nbsp" # Adds a space between the field name and value
+        geo_j = folium.GeoJson(map_data)
+        geo_j.add_to(m)
+        gj = folium.GeoJson(
+          bgs,
+          style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
+          popup=folium.GeoJsonPopup(fields=[envdesc], aliases=[prettier_map_labels])
+        ).add_to(m) 
+        for marker in st.session_state["violations_markers"]: # If there are markers (from the Violations page), map them
+          m.add_child(marker)
+
+        out = st_folium(
+          m,
+          width = map_and_colorbar_widths,
+          returned_objects=[]
+        )
+        
+  st.markdown("""
+    ### Map Legend
+
+    | Feature | What it means |
+    |------|---------------|
+    | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
+  """)
       
-    
-    st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
-    st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
+  st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
+  st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
 
 if __name__ == "__main__":
   main()

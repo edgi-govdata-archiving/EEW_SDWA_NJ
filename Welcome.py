@@ -94,6 +94,7 @@ def get_data(query):
     url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
     data_location = url + urllib.parse.quote_plus(query) + '&pg'
     data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    # Map all SDWA PWS
     sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
     return sdwa
   except:
