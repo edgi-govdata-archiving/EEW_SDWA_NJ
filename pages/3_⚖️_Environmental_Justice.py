@@ -8,7 +8,7 @@ from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
-from folium.plugins import Draw
+from folium.plugins import FastMarkerCluster
 import branca
 import json
 import requests, zipfile, io
@@ -126,15 +126,10 @@ with st.spinner(text="Loading data..."):
   census_data.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
   ej_dict = {v: k for k, v in ej_dict.items()} # re-reverse the key/value dictionary mapping for later use
 
-# Convert st.session_state["last_active_drawing"]
-try:
-  location = geopandas.GeoDataFrame.from_features([st.session_state["last_active_drawing"]]) # Try loading the active box area
-  map_data = st.session_state["last_active_drawing"]
-except:
+# Convert box
+with st.spinner(text="Loading data..."):
   try:
-    default_box = st.session_state["default_box"] # Assumes someone has landed on welcome.py already
-    location = geopandas.GeoDataFrame.from_features([default_box["features"][0]])
-    map_data = default_box["features"][0]
+    location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
   except:
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
@@ -160,23 +155,23 @@ def main():
     
   c1 = st.container()
 
-  with st.spinner(text="Loading interactive map..."):
-    with c1:
-      col1, col2 = st.columns(2)
-      map_and_colorbar_widths = 500
-      
-      with col1:
-        st.markdown("**Select a socio-economic measure:**")
-        ejdesc = st.selectbox(
-          label = "Which socioeconomic measure do you want to explore?",
-          options = ej_options,
-          label_visibility = "hidden"
-        )
-        ejvar = ej_dict[ejdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
+  with c1:
+    col1, col2 = st.columns(2)
+    map_and_colorbar_widths = 500
+    
+    with col1:
+      st.markdown("**Select a socio-economic measure:**")
+      ejdesc = st.selectbox(
+        label = "Which socioeconomic measure do you want to explore?",
+        options = ej_options,
+        label_visibility = "hidden"
+      )
+      ejvar = ej_dict[ejdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
 
-        st.markdown("**EPA defines this as:**")
-        st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
+      st.markdown("**EPA defines this as:**")
+      st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
 
+      with st.spinner(text="Loading interactive map..."):
         m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Greens_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
@@ -188,15 +183,20 @@ def main():
           return "#d3d3d3" if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
 
         prettier_map_labels = ejdesc + ":&nbsp" # Adds a space between the field name and value
-        geo_j = folium.GeoJson(map_data)
-        geo_j.add_to(m)
-        gj = folium.GeoJson(
+        blockgroups = folium.GeoJson(
           bgs,
           style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
           popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
+        ).add_to(m)
+        psas = folium.GeoJson(
+          st.session_state["these_psa"],
+          style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
+          tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
         ).add_to(m) 
-        for marker in st.session_state["violations_markers"]: # If there are local markers (from the Violations page), map them
-          m.add_child(marker)
+        mc = FastMarkerCluster("")
+        for marker in st.session_state["violations_markers"]:
+          mc.add_child(marker)
+        mc.add_to(m)
 
         out = st_folium(
           m,
@@ -204,18 +204,19 @@ def main():
           returned_objects=[]
         )
 
-      with col2:
-        st.markdown("**Select an environmental measure:**")
-        envdesc = st.selectbox(
-          label = "Which environmental indicator do you want to explore?",
-          options = env_options,
-          label_visibility = "hidden"
-        )
-        ejvar = ej_dict[envdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
+    with col2:
+      st.markdown("**Select an environmental measure:**")
+      envdesc = st.selectbox(
+        label = "Which environmental indicator do you want to explore?",
+        options = env_options,
+        label_visibility = "hidden"
+      )
+      ejvar = ej_dict[envdesc] # Get the selected variable's behind the scenes name e.g. MINORPCT
 
-        st.markdown("**EPA defines this as:**")
-        st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
+      st.markdown("**EPA defines this as:**")
+      st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
 
+      with st.spinner(text="Loading interactive map..."):
         m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Blues_05.scale(bg_data[envdesc].str.strip("%").astype(float).min(), bg_data[envdesc].str.strip("%").astype(float).max()) # 0 - 1?
@@ -227,15 +228,20 @@ def main():
           return "#d3d3d3" if feature["properties"][envdesc] is None else colorscale(float(feature["properties"][envdesc].strip("%")))
 
         prettier_map_labels = envdesc + ":&nbsp" # Adds a space between the field name and value
-        geo_j = folium.GeoJson(map_data)
-        geo_j.add_to(m)
-        gj = folium.GeoJson(
+        blockgroups = folium.GeoJson(
           bgs,
           style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
           popup=folium.GeoJsonPopup(fields=[envdesc], aliases=[prettier_map_labels])
+        ).add_to(m)
+        psas = folium.GeoJson(
+          st.session_state["these_psa"],
+          style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
+          tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
         ).add_to(m) 
-        for marker in st.session_state["violations_markers"]: # If there are markers (from the Violations page), map them
-          m.add_child(marker)
+        mc = FastMarkerCluster("")
+        for marker in st.session_state["violations_markers"]:
+          mc.add_child(marker)
+        mc.add_to(m)
 
         out = st_folium(
           m,
@@ -248,7 +254,8 @@ def main():
 
     | Feature | What it means |
     |------|---------------|
-    | Circle size | Number of SDWA violations since 2001 - the larger the circle, the more violations |    
+    | Circle color | Number of drinking water violations since 2001 - the darker the shade of red, the more violations |
+    | Black outlines | Boundaries of Purveyor Service Areas |    
   """)
       
   st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
