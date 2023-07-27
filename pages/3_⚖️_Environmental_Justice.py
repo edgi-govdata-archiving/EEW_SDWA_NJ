@@ -69,26 +69,27 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # EJ parameters we are working with
+longest_definition_length = 315
 ejdefs = {
-  "MINORPCT": "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.",
-  "LOWINCPCT": "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.",
-  "LESSHSPCT": "Percent of people age 25 or older in a block group whose education is short of a high school diploma.",
-  "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.",
-  "UNDER5PCT": 'Percent of people in a block group under the age of 5.',
-  "OVER64PCT": 'Percent of people in a block group over the age of 64.',
-  "UNEMPPCT": "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).",
-  "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure",
-  "DSLPM": "Diesel particulate matter level in air, µg/m3",
-  "CANCER": "Lifetime cancer risk from inhalation of air toxics",
-  "RESP": "Ratio of exposure concentration to health-based reference concentration",
-  "PTRAF": "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)",
-  "PWDIS": "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)",
-  "PNPL": "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
-  "PRMP": "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers",
-  "PTSDF": "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers",
-  "OZONE": "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion",
-  "PM25": "PM2.5 levels in air, µg/m3 annual avg.",
-  "UST": "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group"
+  "MINORPCT":   "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.\n",
+  "LOWINCPCT":  "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.\n" + (longest_definition_length-136)*"&nbsp;",
+  "LESSHSPCT":  "Percent of people age 25 or older in a block group whose education is short of a high school diploma.\n" + (longest_definition_length-101)*"&nbsp;",
+  "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.\n" + (longest_definition_length-270)*"&nbsp;",
+  "UNDER5PCT":  "Percent of people in a block group under the age of 5.\n" + (longest_definition_length-54)*"&nbsp;",
+  "OVER64PCT":  "Percent of people in a block group over the age of 64.\n" + (longest_definition_length-54)*"&nbsp;",
+  "UNEMPPCT":   "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).\n" + (longest_definition_length-232)*"&nbsp;",
+  "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure\n" + (longest_definition_length-86)*"&nbsp;",
+  "DSLPM":      "Diesel particulate matter level in air, µg/m3\n" + (longest_definition_length-45)*"&nbsp;",
+  "CANCER":     "Lifetime cancer risk from inhalation of air toxics\n" + (longest_definition_length-50)*"&nbsp;",
+  "RESP":       "Ratio of exposure concentration to health-based reference concentration\n" + (longest_definition_length-71)*"&nbsp;",
+  "PTRAF":      "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)\n" + (longest_definition_length-124)*"&nbsp;",
+  "PWDIS":      "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)\n" + (longest_definition_length-10)*"&nbsp;",
+  "PNPL":       "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-146)*"&nbsp;",
+  "PRMP":       "Count of RMP (potential chemical accident management plan) facilities within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-150)*"&nbsp;",
+  "PTSDF":      "Count of hazardous waste facilities (TSDFs and LQGs) within 5 km (or nearest beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-129)*"&nbsp;",
+  "OZONE":      "Annual average of top ten maximum daily 8-hour ozone air concentrations in parts per billion\n" + (longest_definition_length-92)*"&nbsp;",
+  "PM25":       "PM2.5 levels in air, µg/m3 annual avg.\n" + (longest_definition_length-38)*"&nbsp;",
+  "UST":        "Count of leaking underground storage tanks (multiplied by a factor of 7.7) and the number of underground storage tanks within a 1,500-foot buffered block group\n" + (longest_definition_length-159)*"&nbsp;"
 } # definitions of each parameter
 ej_parameters = list(ejdefs.keys()) # the parameters themselves
 socecon = ej_parameters[0:8] # socioeconomic measures
