@@ -22,21 +22,21 @@ if previous:
     switch_page("welcome")
 
 st.markdown("""
-  # Exploring Safe Drinking Water in New Jersey
-  ## Statewide Overview of Public Water Systems (PWS)
-  The Safe Drinking Water Act (SDWA) regulates the provision of drinking water from sources that serve the public*. The US Environmental Protection Agency (EPA) oversees  state agencies that enforce regulations about what kinds of contaminants are allowable in drinking water and at
-  what concentration.
+  # Statewide Overview of Public Water Systems
 """)
 
-st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
+with st.spinner(text="Loading data..."):
+  try:
+    markers = st.session_state["statewide_markers"]
+    psas = st.session_state["service_areas"]
+  except:
+    st.error("### Error: Please start on the 'Welcome' page.")
+    st.stop()
 
 def main():
 
   # Streamlit section
   # Map
-  
-  #if "last_active_drawing" not in st.session_state:
-    #st.session_state["last_active_drawing"] = None
 
   c1 = st.container()
   c2 = st.container()
@@ -47,50 +47,65 @@ def main():
     Below, you will find an interactive map of all public water systems in New Jersey. Click on the circles to see more information.
     """)
 
-    @st.cache_data(experimental_allow_widgets=True)
-    def make_map():
-      m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, tiles="cartodb positron")
-
-      # Add polygons representing PSAs
-      #gj = folium.GeoJson(
-      #  st.session_state["service_areas"],
-      #  style_function = lambda sa: {"fillColor": 'grey', "fillOpacity": .75, "weight": .5},
-      #  popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
-      #  ).add_to(m)
-
-      # Add markers representing PWS
-      for marker in st.session_state["statewide_markers"]:
-        m.add_child(marker)
-
-      out = st_folium(
-        m,
-        width = 750,
-        returned_objects=[]
-      )
-
     col1, col2 = st.columns(2)
+
+    @st.cache_data(experimental_allow_widgets=True)
+    def make_map(shape):
+      m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, zoom_control=False, scrollWheelZoom=False, dragging=False, tiles="cartodb positron")
+
+      if shape == "psas": 
+        # Add polygons representing PSAs
+        service_areas = folium.GeoJson(
+          psas,
+          style_function = lambda sa: {"fillColor": None, "fillOpacity": 0, "weight": 2, "color": "black"},
+          popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
+          ).add_to(m)
+
+        with col1:
+          out = st_folium(
+            m,
+            width = 500,
+            returned_objects=[]
+          )
+      else:
+        # Add markers representing PWS
+        for marker in markers:
+          m.add_child(marker)
+        with col2:
+          out = st_folium(
+            m,
+            width = 500,
+            returned_objects=[]
+          )
+
     with col1:
       with st.spinner(text="Loading interactive map..."):
-        make_map()
+        make_map("pws")
     with col2:
-      st.markdown("""
-        ### Map Legend
+      with st.spinner(text="Loading interactive map..."):
+        make_map("psas")
+    
+    st.markdown("""
+      ### Map Legend
 
-        | Feature | What it means |
-        |------|---------------|
-        | Outline - Solid | PWS that draw from surface water |
-        | Outline - None | PWS that draw from groundwater |
-        | Color - Blue | Community Water Systems |
-        | Color - Yellow | Transient Non-Community Water Systems |
-        | Color - Green | Non-Transient, Non-Community Water Systems |
-        | Size | PWS size, from very small to very large |    
-      """)
+      | Feature | What it means |
+      |------|---------------|
+      | Circle outline - Solid | PWS that draw from surface water |
+      | Circle outline - None | PWS that draw from groundwater |
+      | Circle color - Blue | Community Water Systems |
+      | Circle color - Yellow | Transient Non-Community Water Systems |
+      | Circle color - Green | Non-Transient, Non-Community Water Systems |
+      | Circle Size | PWS size, from very small to very large | 
+      | Black outlines | Purveyor Service Area boundaries |   
+    """)
 
     st.markdown("""
       ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
       This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
       but its latitude and longitude actually correspond to somewhere out of state.
+    """)
 
+    st.markdown("""
       :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
     """)
 
@@ -170,6 +185,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-next = st.button("Next: Safe Drinking Water Act Violations")
-if next:
-    switch_page("sdwa violations")
