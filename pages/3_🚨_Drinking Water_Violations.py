@@ -36,32 +36,13 @@ def get_data(query):
 
 # Data Processing
 def get_data_from_ids(table, key, list_of_ids):
-  def chunks(lst, n):
-    """Yield successive n-sized chunks from lst.""" # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
-    for i in range(0, len(lst), n):
-      yield lst[i:i + n]
-
-  data = pd.DataFrame()
-
-  if len (list_of_ids) > 50:
-    list_of_ids = chunks(list_of_ids, 50)
-    for sub_list in list_of_ids:
-      ids  = ""
-      for i in sub_list:
-        ids += "'"+i +"',"
-      ids = ids[:-1]
-      sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
-      st.write(sql)
-      results = get_data(sql)
-      data = pd.concat([data, results])
-  else:
-    ids  = ""
-    for i in list_of_ids:
-      ids += "'"+i +"',"
-    ids = ids[:-1]
-    sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
-    data = get_data(sql)
-
+  ids  = ""
+  for i in list_of_ids:
+    ids += "'"+i +"',"
+  ids = ids[:-1]
+  # get data
+  sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
+  data = get_data(sql)
   return data
 
 # Make the maps' markers
@@ -136,9 +117,9 @@ def main():
         popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
       ).add_to(m)
 
-    mc = FastMarkerCluster("", showCoverageOnHover=False, icon_create_function="""
+    mc = FastMarkerCluster("", icon_create_function="""
         function (cluster) {
-          return L.divIcon({ html: `<i style="fill: #480102">` });
+          return L.divIcon({ html: "<span style='border-radius:50%; border:solid #3388ff 1px;padding:5px 10px 5px 10px; background-color:#3388ff; color:white;'>" + cluster.getChildCount() + "</span>", className: 'mycluster' });
         }
         """)
     for marker in st.session_state["violations_markers"]:
@@ -161,6 +142,7 @@ def main():
       | Feature | What it means |
       |------|---------------|
       | Circle color | Number of drinking water violations since 2001 |
+      | Blue circle with white text | There are multiple facilities with violations in this area, try zooming in |
       | Black outlines | Purveyor Service Area boundaries |
                 
       ### Color Scale
