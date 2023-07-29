@@ -30,9 +30,7 @@ st.markdown("""
 
   ### Drag and zoom the map to center the area you'd like to explore.
             
-  The map will automatically select and show the public water systems in the map area.
-            
-  This page and the following pages will show analyses based on this selection. If you wish to change your search area, you can always come back to this page and move the map around.
+  The map will automatically select and show the public water systems in the map area. This page and the following pages will show analyses based on this selection. If you wish to change your search area, you can always come back to this page and move the map around.
 """)
 
 
@@ -172,18 +170,20 @@ def main():
     with c2:
       st.markdown("""
         ### Map Legend
+        
+        Click on circles and hover over blue areas to see more information.
 
         | Feature | What it means |
         |------|---------------|
         | Colored circle with number | There are several public water systems here, zoom in and/or click to see them |
         | Exploded lines | Several public water systems are listed at these coordinates in EPA's database, learn more about them by clicking the cirles the lines point to |
-        | Circle Outline - Solid | PWS that draw from surface water |
-        | Circle Outline - None | PWS that draw from groundwater |
+        | Circle Outline - Solid | Public water system that draws from surface water |
+        | Circle Outline - None | Public water system that draws from groundwater |
         | Circle Color - Blue | Community Water Systems |
         | Circle Color - Yellow | Transient Non-Community Water Systems |
         | Circle Color - Green | Non-Transient, Non-Community Water Systems |
-        | Circle Size | PWS size, from very small to very large |
-        | Blue area with outline | PWS service area boundary |
+        | Circle Size | Public water system  size, from very small to very large |
+        | Blue area with outline | Service area boundary for a selected public water system |
       """)
 
   with con2:
