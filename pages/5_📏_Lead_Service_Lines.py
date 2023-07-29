@@ -92,12 +92,10 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
       with st.spinner(text="Loading interactive map..."):
-        m = folium.Map(tiles="cartodb positron")
-        m.fit_bounds(bounds)
-        
         colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Number of lead service lines in area"].min(), lead_data["Number of lead service lines in area"].max())
         colorscale.width=500
-        st.write(colorscale)
+        m = folium.Map(tiles="cartodb positron")
+        m.fit_bounds(bounds)
         def style(feature):
           # choropleth approach
           # set colorscale
@@ -118,13 +116,19 @@ def main():
 
       with col2:
         st.markdown("""
+          ### Color Scale
+          Number of lead service lines in area
+          """)
+        
+        st.write(colorscale)
+        
+        st.markdown("""
           ### Map Legend
 
           | Feature | What it means |
           |------|---------------|
-          | Circle color | Number of drinking water violations since 2001 - the darker the shade of red, the more violations | 
           | Black outlines | Purveyor Service Area boundaries | 
-
+                    
           ### System Size Definitions
           | Size Classification | Population Range Served |
           |------|---------------|

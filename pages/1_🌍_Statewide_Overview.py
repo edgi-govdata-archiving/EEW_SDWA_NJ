@@ -197,6 +197,10 @@ def main():
       """)
       st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
 
+    next = st.button("Next: Find Public Water Systems")
+    if next:
+        switch_page("find public water systems")
 if __name__ == "__main__":
     main()
+
 
