@@ -55,7 +55,8 @@ def main():
         service_areas = folium.GeoJson(
           psas,
           style_function = lambda sa: {"fillColor": None, "fillOpacity": 0, "weight": 2, "color": "black"},
-          popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
+          tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME'], labels=False),
+          popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'], aliases=['Water system:', 'Website:'])
           ).add_to(m)
 
         with col1:
