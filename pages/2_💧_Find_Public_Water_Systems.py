@@ -23,12 +23,17 @@ st.markdown(""" # Search for Public Water Systems
 
   The Safe Drinking Water Act (SDWA) regulates the provision of drinking water from sources that serve the public*. The US Environmental Protection Agency (EPA) oversees  state agencies that enforce regulations about what kinds of contaminants are allowable in drinking water and at
   what concentration.
-
-  ### Move the map into the area you'd like to explore to retrieve info about nearby public water systems
-
-  The next pages will also show data based on the area you have selected. If you wish to change your search area, you can come back to this page and do so.
 """)
 st.caption("*Public water systems = water systems that serve at least 25 people, so not private wells.")
+            
+st.markdown("""
+
+  ### Drag and zoom the map to center the area you'd like to explore.
+            
+  The map will automatically select and show the public water systems in the map area.
+            
+  This page and the following pages will show analyses based on this selection. If you wish to change your search area, you can always come back to this page and move the map around.
+""")
 
 
 @st.cache_data
@@ -170,12 +175,15 @@ def main():
 
         | Feature | What it means |
         |------|---------------|
-        | Outline - Solid | PWS that draw from surface water |
-        | Outline - None | PWS that draw from groundwater |
-        | Color - Blue | Community Water Systems |
-        | Color - Yellow | Transient Non-Community Water Systems |
-        | Color - Green | Non-Transient, Non-Community Water Systems |
-        | Size | PWS size, from very small to very large |    
+        | Colored circle with number | There are several public water systems here, zoom in and/or click to see them |
+        | Exploded lines | Several public water systems are listed at these coordinates in EPA's database, learn more about them by clicking the cirles the lines point to |
+        | Circle Outline - Solid | PWS that draw from surface water |
+        | Circle Outline - None | PWS that draw from groundwater |
+        | Circle Color - Blue | Community Water Systems |
+        | Circle Color - Yellow | Transient Non-Community Water Systems |
+        | Circle Color - Green | Non-Transient, Non-Community Water Systems |
+        | Circle Size | PWS size, from very small to very large |
+        | Blue area with outline | PWS service area boundary |
       """)
 
   with con2:
