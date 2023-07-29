@@ -18,6 +18,7 @@ st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Ass
 c1 = st.container()
 c2 = st.container()
 c3 = st.container()
+c4 = st.container()
 
 with c1:
   st.markdown("""# Exploring Safe Drinking Water in New Jersey
@@ -32,7 +33,7 @@ with c1:
 
   st.caption("""*i.e. those that serve at least 25 people, so not private household wells""")
 
-with c3:
+with c2:
   st.markdown("""## What You Can Learn Here
   You can explore imporant questions about SDWA in New Jersey on this website, such as:
   * Where are the state's public water systems?
@@ -43,14 +44,6 @@ with c3:
   * Who might be most affected by how public water systems manage drinking water? What are the environmental justice implications?
   * Does my community have lead service lines, the kinds of which contributed to Flint, Michigan's drinking water crisis?
   * What kinds of pollutants are permitted to be released in the watershed?
-  """)
-
-  next = st.button("Get Started! >")
-  if next:
-      switch_page("statewide overview")
-
-  st.markdown("""
-  ##### This website was created by the [Environmental Enforcement Watch](https://environmentalenforcementwatch.org/) (EEW) project of the [Environmental Data and Governance Initiative](https://envirodatagov.org/) (EDGI).  Please visit our websites to learn more about our work!
   """)
 
 @st.cache_data
@@ -94,7 +87,7 @@ def add_spatial_data(url, name, projection=4326):
   return sd
 
 # Initial query (NJ PWS)
-with c2:
+with c3:
   with st.spinner(text="Loading data..."):
     # Load PWS data
     sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
@@ -160,3 +153,12 @@ with c2:
       st.session_state["these_psa"] = service_areas[service_areas.geometry.intersects(bounds.geometry[0])] # Service areas in the place
     if "box" not in st.session_state: # Default bounds
       st.session_state["box"] = bounds
+
+    next = st.button("Get Started! >")
+    if next:
+        switch_page("statewide overview")
+
+  with c4:
+    st.markdown("""
+    ##### This website was created by the [Environmental Enforcement Watch](https://environmentalenforcementwatch.org/) (EEW) project of the [Environmental Data and Governance Initiative](https://envirodatagov.org/) (EDGI).  Please visit our websites to learn more about our work!
+    """)
