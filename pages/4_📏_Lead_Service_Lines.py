@@ -123,7 +123,16 @@ def main():
           | Feature | What it means |
           |------|---------------|
           | Circle color | Number of drinking water violations since 2001 - the darker the shade of red, the more violations | 
-          | Black outlines | Purveyor Service Area boundaries |   
+          | Black outlines | Purveyor Service Area boundaries | 
+
+          ### System Size Definitions
+          | Size Classification | Population Range Served |
+          |------|---------------|
+          | Very Small | 500 or less |
+          | Small | 501 - 3,300 |
+          | Medium | 3,301 - 10,000 |
+          | Large | 10,001 - 100,00 |
+          | Very Large | Greater than 100,000 |  
         """)
 
   with c2:
