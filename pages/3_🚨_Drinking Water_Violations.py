@@ -117,7 +117,12 @@ def main():
         popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
       ).add_to(m)
 
-    mc = FastMarkerCluster("")
+    cluster_color = "#480102"
+    mc = FastMarkerCluster("", icon_create_function="""
+        function (cluster) {
+          return L.divIcon({ html: `<i style="color: ${cluster_color}">` });
+        }
+        """)
     for marker in st.session_state["violations_markers"]:
       mc.add_child(marker)
     mc.add_to(m)
