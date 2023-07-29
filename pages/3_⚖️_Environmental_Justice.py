@@ -13,7 +13,7 @@ import branca
 import json
 import requests, zipfile, io
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="⚖️ Environmental Justice")
 
 previous = st.button("Previous: Safe Drinking Water Act Violations")
 if previous:

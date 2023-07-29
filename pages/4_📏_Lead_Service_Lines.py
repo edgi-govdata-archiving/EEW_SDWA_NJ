@@ -14,7 +14,7 @@ import altair as alt
 import json
 import requests, zipfile, io
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="📏 Lead Service Lines")
 
 previous = st.button("Previous: Environmental Justice")
 if previous:

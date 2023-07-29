@@ -13,7 +13,7 @@ from folium.plugins import FastMarkerCluster
 import branca
 import altair as alt
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="🚨 Drinking Water Violations")
 
 previous = st.button("Previous: Find Public Water Systems")
 if previous:

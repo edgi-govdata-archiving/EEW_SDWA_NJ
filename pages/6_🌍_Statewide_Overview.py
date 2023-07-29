@@ -14,7 +14,7 @@ import altair as alt
 import json
 import requests, zipfile, io
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="🌍 Statewide Overview")
 #st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
 
 previous = st.button("Previous: Welcome")
