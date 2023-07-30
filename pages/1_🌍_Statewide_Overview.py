@@ -112,13 +112,13 @@ def main():
     Below are two interactive maps of all public water systems in New Jersey. Click on the maps to see more information.
     """)
 
-    col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
 
-    with col1:
+    with col3:
       with st.spinner(text="Loading interactive map..."):
         make_map("psas")
 
-    with col2:
+    with col4:
       st.markdown("""
                   ### Water system service areas
 
