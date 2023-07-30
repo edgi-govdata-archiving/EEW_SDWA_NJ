@@ -14,7 +14,7 @@ import altair as alt
 import json
 import requests, zipfile, io
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="🌍 Statewide Overview")
 #st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
 
 previous = st.button("Previous: Welcome")
@@ -40,13 +40,10 @@ def main():
 
   c1 = st.container()
   c2 = st.container()
+  c3 = st.container()
 
-  with c1:
-    st.markdown("## Locations of New Jersey's Public Water Systems")
-    st.markdown("""
-    Below, you will find an interactive map of all public water systems in New Jersey. Click on the circles to see more information.
-    """)
-
+  with c2:
+    
     col1, col2 = st.columns(2)
 
     @st.cache_data(experimental_allow_widgets=True)
@@ -81,36 +78,54 @@ def main():
     with col1:
       with st.spinner(text="Loading interactive map..."):
         make_map("pws")
-    with col2:
+    with col2:   
+      st.markdown("""
+        ### Water systems by size, type, and water source
+                  
+        #### Map Legend
+
+        | Feature | What it means |
+        |------|---------------|
+        | Circle outline - Solid | PWS that draw from surface water |
+        | Circle outline - None | PWS that draw from groundwater |
+        | Circle color - Blue | Community Water Systems |
+        | Circle color - Yellow | Transient Non-Community Water Systems |
+        | Circle color - Green | Non-Transient, Non-Community Water Systems |
+        | Circle Size | PWS size, from very small to very large | 
+        | Black outlines | Purveyor Service Area boundaries |   
+      """)
+
+      st.markdown("""
+        ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
+        This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
+        but its latitude and longitude actually correspond to somewhere out of state.
+
+        :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
+                  
+        :arrow_right: Notice that some circles are stacked exactly on top of each other (this looks like, e.g., a small yellow circle inside of a larger green circle inside of a larger blue circle). This means that EPA has listed the headquarters locations of these different water sources in exactly the same place, even though they are often different entities. Is this another data error?
+      """)
+
+  with c1:
+    st.markdown("## Locations of New Jersey's Public Water Systems")
+    st.markdown("""
+    Below are two interactive maps of all public water systems in New Jersey. Click on the maps to see more information.
+    """)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
       with st.spinner(text="Loading interactive map..."):
         make_map("psas")
-    
-    st.markdown("""
-      ### Map Legend
 
-      | Feature | What it means |
-      |------|---------------|
-      | Circle outline - Solid | PWS that draw from surface water |
-      | Circle outline - None | PWS that draw from groundwater |
-      | Circle color - Blue | Community Water Systems |
-      | Circle color - Yellow | Transient Non-Community Water Systems |
-      | Circle color - Green | Non-Transient, Non-Community Water Systems |
-      | Circle Size | PWS size, from very small to very large | 
-      | Black outlines | Purveyor Service Area boundaries |   
-    """)
+    with col2:
+      st.markdown("""
+                  ### Water system service areas
 
-    st.markdown("""
-      ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
-      This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
-      but its latitude and longitude actually correspond to somewhere out of state.
-    """)
-
-    st.markdown("""
-      :arrow_right: What are some implications of a data error like this? How might a misclassification by state or incorrect location impact the regulation of safe drinking water at a facility?
-    """)
+                  Black outlines on the map to the left show the service areas of all public water systems in New Jersey. Click on the map to see more information about the water system.
+                  """)
 
 
-  with c2:
+  with c3:
     st.markdown("## Summary of Public Water Systems by Type, Size, and Source")
     st.markdown("""
       Click through the tabs below to see summaries of New Jersey's water systems based on different EPA categorizations.
@@ -182,6 +197,10 @@ def main():
       """)
       st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
 
+    next = st.button("Next: Find Public Water Systems")
+    if next:
+        switch_page("find public water systems")
 if __name__ == "__main__":
     main()
+
 

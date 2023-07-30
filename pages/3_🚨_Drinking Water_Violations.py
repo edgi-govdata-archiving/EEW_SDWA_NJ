@@ -13,7 +13,7 @@ from folium.plugins import FastMarkerCluster
 import branca
 import altair as alt
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="🚨 Drinking Water Violations")
 
 previous = st.button("Previous: Find Public Water Systems")
 if previous:
@@ -137,10 +137,13 @@ def main():
 
       | Feature | What it means |
       |------|---------------|
-      | Circle color | Number of drinking water violations since 2001 - the darker the shade of red, the more violations |
-      | Black outlines | Purveyor Service Area boundaries |   
+      | Circle color | Number of drinking water violations since 2001 |
+      | Black outlines | Purveyor Service Area boundaries |
+                
+      ### Color Scale
+      Number of drinking water violations: the darker the shade of red, the more violations at the facility
     """)
-    st.session_state["violations_colorscale"].width = 750
+    st.session_state["violations_colorscale"].width = 450
     st.write(st.session_state["violations_colorscale"])
 
   with c2:

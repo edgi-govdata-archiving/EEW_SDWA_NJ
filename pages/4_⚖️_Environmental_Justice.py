@@ -13,7 +13,7 @@ import branca
 import json
 import requests, zipfile, io
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="⚖️ Environmental Justice")
 
 previous = st.button("Previous: Safe Drinking Water Act Violations")
 if previous:
@@ -44,7 +44,7 @@ st.markdown("""
   that are at least partly in the selected area, and the recorded value for the selected EJ measure there (using data from EPA's EJScreen tool). 
   The darker the shade of the blue, the more present that measure is in the block group — 
   for example, a higher percentage minority population will appear in a darker blue. Overlaid on the color blocks,
-  you can see safe drinking water act violations.
+  you can see safe drinking water act violations. (If the violations aren't showing up, try going back to the Drinking Water Violations page and then returning here.)
 """)
 
 @st.cache_data

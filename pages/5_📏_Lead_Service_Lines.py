@@ -14,7 +14,7 @@ import altair as alt
 import json
 import requests, zipfile, io
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_title="📏 Lead Service Lines")
 
 previous = st.button("Previous: Environmental Justice")
 if previous:
@@ -92,12 +92,10 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
       with st.spinner(text="Loading interactive map..."):
-        m = folium.Map(tiles="cartodb positron")
-        m.fit_bounds(bounds)
-        
         colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Number of lead service lines in area"].min(), lead_data["Number of lead service lines in area"].max())
         colorscale.width=500
-        st.write(colorscale)
+        m = folium.Map(tiles="cartodb positron")
+        m.fit_bounds(bounds)
         def style(feature):
           # choropleth approach
           # set colorscale
@@ -118,12 +116,27 @@ def main():
 
       with col2:
         st.markdown("""
+          ### Color Scale
+          Number of lead service lines in area
+          """)
+        
+        st.write(colorscale)
+        
+        st.markdown("""
           ### Map Legend
 
           | Feature | What it means |
           |------|---------------|
-          | Circle color | Number of drinking water violations since 2001 - the darker the shade of red, the more violations | 
-          | Black outlines | Purveyor Service Area boundaries |   
+          | Black outlines | Purveyor Service Area boundaries | 
+                    
+          ### System Size Definitions
+          | Size Classification | Population Range Served |
+          |------|---------------|
+          | Very Small | 500 or less |
+          | Small | 501 - 3,300 |
+          | Medium | 3,301 - 10,000 |
+          | Large | 10,001 - 100,00 |
+          | Very Large | Greater than 100,000 |  
         """)
 
   with c2:
