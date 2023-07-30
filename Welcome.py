@@ -161,4 +161,6 @@ with c3:
   with c4:
     st.markdown("""
     ##### This website was created by the [Environmental Enforcement Watch](https://environmentalenforcementwatch.org/) (EEW) project of the [Environmental Data and Governance Initiative](https://envirodatagov.org/) (EDGI).  Please visit our websites to learn more about our work!
+                
+    This tool was funded by National Science Foundation Awards #2127334 and #2127335.
     """)

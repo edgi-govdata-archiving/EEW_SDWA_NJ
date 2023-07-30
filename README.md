@@ -11,4 +11,4 @@ This app is rendered in Streamlit. To run locally:
 2. Run this app with `streamlit run Welcome.py`
 
 # Credits
-Developed by Eric Nost and Kelsey Breseman based on infrastructure from EDGI's Environmental Enforcement Watch project (credits [here](https://environmentalenforcementwatch.org/about/people)). Funding for this project comes from an NSF grant submitted by William Paterson University in New Jersey (WPUNJ) and Columbia University to study New Jersey's drinking water quality.
+Developed by Eric Nost and Kelsey Breseman based on infrastructure from EDGI's Environmental Enforcement Watch project (credits [here](https://environmentalenforcementwatch.org/about/people)). Funding for this project comes from National Science Foundation Awards #2127334 and #2127335: "Collaborative Research: Socio-economic patterns, public perceptions, and climate vulnerabilities of water resources and quality"; Principal Investigators: William D'Andrea (Columbia), and  Nicole Davi, Marianne Sullivan, and Lilian Milanes (William Paterson University).
