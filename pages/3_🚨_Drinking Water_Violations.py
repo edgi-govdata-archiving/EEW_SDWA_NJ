@@ -36,13 +36,32 @@ def get_data(query):
 
 # Data Processing
 def get_data_from_ids(table, key, list_of_ids):
-  ids  = ""
-  for i in list_of_ids:
-    ids += "'"+i +"',"
-  ids = ids[:-1]
-  # get data
-  sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
-  data = get_data(sql)
+  def chunks(lst, n):
+    """Yield successive n-sized chunks from lst.""" # https://stackoverflow.com/questions/312443/how-do-i-split-a-list-into-equally-sized-chunks
+    for i in range(0, len(lst), n):
+      yield lst[i:i + n]
+
+  data = pd.DataFrame()
+
+  if len (list_of_ids) > 50:
+    list_of_ids = chunks(list_of_ids, 50)
+    for sub_list in list_of_ids:
+      ids  = ""
+      for i in sub_list:
+        ids += "'"+i +"',"
+      ids = ids[:-1]
+      sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
+      st.write(sql)
+      results = get_data(sql)
+      data = pd.concat([data, results])
+  else:
+    ids  = ""
+    for i in list_of_ids:
+      ids += "'"+i +"',"
+    ids = ids[:-1]
+    sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
+    data = get_data(sql)
+
   return data
 
 # Make the maps' markers
@@ -117,10 +136,9 @@ def main():
         popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
       ).add_to(m)
 
-    cluster_color = "#480102"
-    mc = FastMarkerCluster("", icon_create_function="""
+    mc = FastMarkerCluster("", showCoverageOnHover=False, icon_create_function="""
         function (cluster) {
-          return L.divIcon({ html: `<i style="color: ${cluster_color}">` });
+          return L.divIcon({ html: `<i style="fill: #480102">` });
         }
         """)
     for marker in st.session_state["violations_markers"]:
