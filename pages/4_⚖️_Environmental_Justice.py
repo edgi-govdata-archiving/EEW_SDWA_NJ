@@ -172,7 +172,7 @@ def main():
       st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
 
       with st.spinner(text="Loading interactive map..."):
-        m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
+        m = folium.Map(tiles="cartodb positron")
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Greens_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
         colorscale.width = map_and_colorbar_widths
@@ -193,7 +193,7 @@ def main():
           style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
           tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
         ).add_to(m) 
-        mc = FastMarkerCluster("", icon_create_function="""
+        mc = FastMarkerCluster("", showCoverageOnHover = False, removeOutsideVisibleBounds = True, icon_create_function="""
         function (cluster) {
           return L.divIcon({ html: "<span style='border-radius:50%; border:solid #3388ff 1px;padding:5px 10px 5px 10px; background-color:#3388ff; color:white;'>" + cluster.getChildCount() + "</span>", className: 'mycluster' });
         }
@@ -221,7 +221,7 @@ def main():
       st.markdown(ejdefs[ejvar]) # Look up the selected variable's definition based on its behind the scenes name
 
       with st.spinner(text="Loading interactive map..."):
-        m = folium.Map(tiles="cartodb positron", zoom_control=False, scrollWheelZoom=False, dragging=False)
+        m = folium.Map(tiles="cartodb positron")
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Blues_05.scale(bg_data[envdesc].str.strip("%").astype(float).min(), bg_data[envdesc].str.strip("%").astype(float).max()) # 0 - 1?
         colorscale.width = map_and_colorbar_widths

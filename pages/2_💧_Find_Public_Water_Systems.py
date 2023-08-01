@@ -154,7 +154,7 @@ def main():
         tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME'], labels=False)
         )
       ) # Styling doesn't work. See: https://github.com/randyzwitch/streamlit-folium/issues/121
-    mc = FastMarkerCluster("")
+    mc = FastMarkerCluster("", showCoverageOnHover = False, removeOutsideVisibleBounds = True)
     for marker in st.session_state["these_markers"]:
       mc.add_child(marker)
     fg.add_child(mc)
