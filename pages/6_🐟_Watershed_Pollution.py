@@ -37,7 +37,7 @@ st.markdown("On this page, you can explore the pollutants that industrial facili
 st.caption("""          
   :face_with_monocle: Where does this data come from? When facilities receive permits to release certain effluents, often they are required to file "discharge monitoring reports"— so this data is from facilities reporting their own discharge. [Wikipedia](https://en.wikipedia.org/wiki/Discharge_Monitoring_Report) has a good introduction to the concept.
             
-  :arrow_right: This data only includes the pollutants that are reported by a facility before it discharges into the water. Pollutants can also end up in the water from the air, from polluters operating below permit-requiring levels, and lots of other ways (can you think of more?) One way to learn more about what is in the water is with EPA's [How's My Waterway tool](https://mywaterway.epa.gov/), which shows the status of local waterways based on monitoring.
+  :arrow_right: This data only includes the pollutants that are reported by a facility discharging into the water. Pollutants can also end up in the water from the air, from polluters operating below permit-requiring levels, and lots of other ways (can you think of more?) One way to learn more about what is in the water is with EPA's [How's My Waterway tool](https://mywaterway.epa.gov/), which shows the status of local waterways based on monitoring.
 """)
             
 @st.cache_data
