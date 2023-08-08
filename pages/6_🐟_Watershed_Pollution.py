@@ -59,6 +59,10 @@ with st.spinner(text="Loading data..."):
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
   # Set bounds
+  if st.session_state["these_psa"].empty: # If there are no PSA to work with
+    location = location
+  else: # If there are PSA to work with
+    location = st.session_state["these_psa"]
   b = location.geometry.total_bounds
   x1,y1,x2,y2 = location.geometry.total_bounds
   bounds = [[y1, x1], [y2, x2]]
@@ -155,7 +159,10 @@ def main():
           watersheds,
           style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1, "color": "white"}
           ).add_to(m)
-        psas = folium.GeoJson(
+        if st.session_state["these_psa"].empty:
+          pass
+        else:
+          psas = folium.GeoJson(
             st.session_state["these_psa"],
             style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
             tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
