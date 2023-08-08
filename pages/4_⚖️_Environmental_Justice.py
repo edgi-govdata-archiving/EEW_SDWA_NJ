@@ -135,7 +135,11 @@ with st.spinner(text="Loading data..."):
     st.stop()
 
 # Filter to area
-bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+if st.session_state["these_psa"].empty: # If there are no PSA to work with
+  bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+else: # If there are PSA to work with
+  within = census_data.sindex.query(location.geometry, predicate="intersects")
+  bgs = census_data.iloc[within[1], :] # Block groups in the PSAs
 bg_data = bgs
 # Set bounds to drawn area
 x1,y1,x2,y2 = location.geometry.total_bounds
@@ -269,6 +273,15 @@ def main():
       
   st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
   st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
+
+  # Download Data Button
+  st.download_button(
+    "Download this page's data",
+    bg_data.to_csv(),
+    "selected_area_ej_measures.csv",
+    "text/csv",
+    key='download-csv'
+  )
 
 if __name__ == "__main__":
   main()

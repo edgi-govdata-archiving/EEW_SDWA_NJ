@@ -67,7 +67,6 @@ except:
   st.error("### Error: Please start on the 'Welcome' page.")
   st.stop()
 
-style = lambda x: {"fillColor": "red"}
 
 def main():
   if "bounds" not in st.session_state: # bounds for this page
@@ -76,11 +75,23 @@ def main():
   # Streamlit section
   # Map
   def change(bounds):
-    st.session_state['bounds'] = bounds
+    
     if output["zoom"] < 11:
       with c2:
         st.error("### Try zooming in a bit more. There's too much data to show for this big of an area.")
         st.stop()
+    # Test if bounds have changed enough
+    try:
+      print(bounds["_southWest"]["lng"] - st.session_state['bounds']["_southWest"]["lng"])
+    except:
+      pass
+    #if (
+    #  bounds["_southWest"]["lng"] - st.session_state['bounds']["_southWest"]["lng"]
+    #  ):
+    #  st.write("proceed")
+    #else:
+    #  st.stop()
+    st.session_state['bounds'] = bounds
     # Create a feature from bounds
     feature = {
     "type": "FeatureCollection",
@@ -122,12 +133,19 @@ def main():
     bounds = geopandas.GeoDataFrame.from_features(feature)
     bounds.set_crs(4326, inplace=True)
     psa_gdf = psa[psa.geometry.intersects(bounds.geometry[0])] # Service areas in the place
-    # Clip data to bounds
+    # Clip SDWA data to bounds
     data = sdwa[sdwa.geometry.intersects(bounds.geometry[0])]
+    # Add SDWA data based on PSA ids
+    ## Get PSA ids
+    psa_ids = list(psa_gdf.index.unique())
+    ## Get PSA/PWS data
+    psa_pws = sdwa[sdwa["PWSID"].isin(psa_ids)]
+    ## Join PSA/PWS and PWS (some will already match - where the marker is actually in the bounds)
+    data = pd.concat([data,psa_pws]).drop_duplicates(subset=["PWSID"]).reset_index(drop=True)
     # Process data, make markers for mapping
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in data.iterrows() if not mark.geometry.is_empty]
+      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]], fill_opacity = 1) for index,mark in data.iterrows() if not mark.geometry.is_empty]
     # Save data
     st.session_state["these_psa"] = psa_gdf
     st.session_state["these_markers"] = markers
@@ -259,7 +277,15 @@ def main():
       """)
       st.caption("Size classifications can be found in EPA's Drinking Water Dashboard [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#dictionary)")
 
-    
+    # Download Data Button
+    st.download_button(
+      "Download this page's data",
+      st.session_state["these_data"].loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021].to_csv(),
+      "selected_public_water_systems.csv",
+      "text/csv",
+      key='download-csv'
+    )
+
 if __name__ == "__main__":
   main()
 

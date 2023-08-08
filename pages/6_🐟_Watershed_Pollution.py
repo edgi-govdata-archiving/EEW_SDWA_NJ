@@ -209,5 +209,13 @@ def main():
 
   st.markdown(":arrow_right: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
 
+  # Download Data Button
+  st.download_button(
+    "Download this page's data",
+    dmr.to_csv(),
+    "selected_area_pollutants.csv",
+    "text/csv",
+    key='download-csv'
+  )
 if __name__ == "__main__":
   main()
