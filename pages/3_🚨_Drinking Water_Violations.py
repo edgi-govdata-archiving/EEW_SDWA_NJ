@@ -113,22 +113,26 @@ def main():
     # Get violations data for PWS and PSA/PWS
     violations_data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
     # Make sure that facilities with no violations still get markers
-    ## Facilities with violations
-    facs_with_violations = list(violations_data["PWSID"].unique())
-    ## Facilities without violations
-    facs_without_violations = list(set(these_pws) - set(facs_with_violations))
-    ## Add faciliities without violations information
-    facs_without_violations = sdwa[sdwa["PWSID"].isin(facs_without_violations)]
-    ## Fill in missing information from violations table
-    facs_without_violations["PWS_SIZE"] = "N/A"
-    facs_without_violations["HEALTH_BASED"] = "N" # Really should be N/A but then chart won't show correctly
-    #facs_without_violations["PWS_TYPE_CODE"] = "N/A"
-    #facs_without_violations["PWS_NAME"] = "N/A"
-    violations_data = pd.concat([violations_data, facs_without_violations])
-    # Process data, make markers, save data
-    st.session_state["violations_markers"], st.session_state["violations_colorscale"], violations_counts = marker_maker(violations_data, list(facs_without_violations["PWSID"].unique()))
-    st.session_state["violations_data"] = violations_data 
-    bounds = [[y1, x1], [y2, x2]]
+    if violations_data is not None:
+      ## Facilities with violations
+      facs_with_violations = list(violations_data["PWSID"].unique())
+      ## Facilities without violations
+      facs_without_violations = list(set(these_pws) - set(facs_with_violations))
+      ## Add faciliities without violations information
+      facs_without_violations = sdwa[sdwa["PWSID"].isin(facs_without_violations)]
+      ## Fill in missing information from violations table
+      facs_without_violations["PWS_SIZE"] = "N/A"
+      facs_without_violations["HEALTH_BASED"] = "N" # Really should be N/A but then chart won't show correctly
+      #facs_without_violations["PWS_TYPE_CODE"] = "N/A"
+      #facs_without_violations["PWS_NAME"] = "N/A"
+      violations_data = pd.concat([violations_data, facs_without_violations])
+      # Process data, make markers, save data
+      st.session_state["violations_markers"], st.session_state["violations_colorscale"], violations_counts = marker_maker(violations_data, list(facs_without_violations["PWSID"].unique()))
+      st.session_state["violations_data"] = violations_data 
+      bounds = [[y1, x1], [y2, x2]]
+    else:
+      st.error("### There are no public water systems in this area.")
+      st.stop()
 
     if st.session_state["these_psa"].empty:
       pass
