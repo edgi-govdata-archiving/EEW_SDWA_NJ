@@ -56,7 +56,7 @@ def add_spatial_data(url, name, projection=4326):
   ----------
   url: a zip of shapefile (in the future, extend to geojson)
   name: a string handle for the data files
-  projection (optional): an EPSG projection for the spatial dataa
+  projection (optional): an EPSG projection for the spatial data
 
   Returns
   -------
@@ -139,7 +139,8 @@ if st.session_state["these_psa"].empty: # If there are no PSA to work with
   bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
 else: # If there are PSA to work with
   within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
-  bgs = census_data.iloc[within[1], :] # Block groups in the PSAs
+  bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
+
 bg_data = bgs
 # Set bounds to drawn area
 x1,y1,x2,y2 = location.geometry.total_bounds

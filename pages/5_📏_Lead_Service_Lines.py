@@ -79,6 +79,11 @@ def main():
   c1 = st.container()
   c2 = st.container()
 
+  if lead_data.empty:
+    with c1:
+      st.error("### There are no purveyor service areas required to count lead service lines in this area.")
+      st.stop()
+
   with c1:
     st.markdown("""
       ## Map of Purveyor Service Areas in Selected Area
@@ -102,16 +107,11 @@ def main():
           return "#d3d3d3" if feature["properties"]["Number of lead service lines in area"] is None else colorscale(feature["properties"]["Number of lead service lines in area"])
 
         # Add PSA service areas
-        if lead_data.empty:
-          with col1:
-            st.error("### There are no purveyor service areas required to count lead service lines in this area.")
-            st.stop()
-        else:
-          gj = folium.GeoJson(
-            lead,
-            style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 2, "color": "black"},
-            popup=folium.GeoJsonPopup(fields=['Utility', "Number of lead service lines in area", "System Size"])
-            ).add_to(m)
+        gj = folium.GeoJson(
+          lead,
+          style_function = lambda sa: {"fillColor": style(sa), "fillOpacity": .75, "weight": 2, "color": "black"},
+          popup=folium.GeoJsonPopup(fields=['Utility', "Number of lead service lines in area", "System Size"])
+          ).add_to(m)
 
         out = st_folium(
           m,
