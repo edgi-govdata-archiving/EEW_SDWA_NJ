@@ -36,6 +36,7 @@ def get_data(query):
 
 # Data Processing
 def get_data_from_ids(table, key, list_of_ids):
+  print(list_of_ids)
   ids  = ""
   for i in list_of_ids:
     ids += "'"+i +"',"
@@ -46,25 +47,29 @@ def get_data_from_ids(table, key, list_of_ids):
   return data
 
 # Make the maps' markers
-def marker_maker(data):
+def marker_maker(data, facs_without_violations):
   """
   data: SDWA violations dataframe
   """
   # Process data for mapping - drop duplicates (multiple violations) to just get one marker per facility. Color marker by violation count.
-  context = data[["PWSID", "PWS_NAME", "PWS_TYPE_CODE", "PWS_SIZE", "SOURCE_WATER", "FAC_LAT", "FAC_LONG"]]
+  context = data[["PWSID", "FAC_NAME", "PWS_TYPE_CODE", "PWS_SIZE", "SOURCE_WATER", "FAC_LAT", "FAC_LONG"]]
   context.set_index("PWSID", inplace = True)
-  data = data.groupby(by=["PWSID"])[["PWSID"]].count().rename(columns={"PWSID": "COUNT"}) # Group data
+  data = data.groupby(by=["PWSID"])[["PWSID"]].count().rename(columns={"PWSID": "VIOLATIONS_COUNT"}) # Group data
   data = context.join(data).reset_index().drop_duplicates(subset=["PWSID"])
-  colorscale = branca.colormap.linear.Reds_05.scale(data["COUNT"].min(), data["COUNT"].max())
+  data.loc[data["PWSID"].isin(facs_without_violations), "VIOLATIONS_COUNT"] = 0  # Find facs_without_violations and set count to 0
+  colorscale = branca.colormap.linear.Reds_05.scale(data["VIOLATIONS_COUNT"].min(), data["VIOLATIONS_COUNT"].max())
   # Map PWS
   markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
-    popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Violations since 2001:</b> '+str(mark["COUNT"])+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["PWS_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+    popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Violations since 2001:</b> '+
+      str(mark["VIOLATIONS_COUNT"])+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+
+      mark["PWS_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]
+    ),
     radius=12, 
-    fill_color=colorscale(mark["COUNT"]),
+    fill_color=colorscale(mark["VIOLATIONS_COUNT"]),
     fill_opacity=1,
     weight=1,
     stroke="white") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
-  return markers, colorscale
+  return markers, colorscale, data
 
 # Reload, but don't map, PWS
 with st.spinner(text="Loading data..."):
@@ -102,19 +107,42 @@ def main():
     # Get PWS
     these_pws = geopandas.clip(sdwa, bounds.geometry)
     these_pws = list(these_pws["PWSID"].unique())
+    # Get PSA ids
+    psa_ids = list(st.session_state["these_psa"].index.unique())
+    these_pws = these_pws + psa_ids
+    # Get violations data for PWS and PSA/PWS
     violations_data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
-    # Process data, make markers, save data
-    st.session_state["violations_markers"], st.session_state["violations_colorscale"] = marker_maker(violations_data)
-    st.session_state["violations_data"] = violations_data 
-    bounds = [[y1, x1], [y2, x2]]
+    # Make sure that facilities with no violations still get markers
+    if violations_data is not None:
+      ## Facilities with violations
+      facs_with_violations = list(violations_data["PWSID"].unique())
+      ## Facilities without violations
+      facs_without_violations = list(set(these_pws) - set(facs_with_violations))
+      ## Add faciliities without violations information
+      facs_without_violations = sdwa[sdwa["PWSID"].isin(facs_without_violations)]
+      ## Fill in missing information from violations table
+      facs_without_violations["PWS_SIZE"] = "N/A"
+      facs_without_violations["HEALTH_BASED"] = "N" # Really should be N/A but then chart won't show correctly
+      #facs_without_violations["PWS_TYPE_CODE"] = "N/A"
+      #facs_without_violations["PWS_NAME"] = "N/A"
+      violations_data = pd.concat([violations_data, facs_without_violations])
+      # Process data, make markers, save data
+      st.session_state["violations_markers"], st.session_state["violations_colorscale"], violations_counts = marker_maker(violations_data, list(facs_without_violations["PWSID"].unique()))
+      st.session_state["violations_data"] = violations_data 
+      bounds = [[y1, x1], [y2, x2]]
+    else:
+      st.error("### There are no public water systems in this area.")
+      st.stop()
 
     if st.session_state["these_psa"].empty:
       pass
     else:
+      # Join violations counts to these_psa
+      map_psa = st.session_state["these_psa"].merge(violations_counts, left_on="PWID", right_on="PWSID")
       folium.GeoJson(
-        st.session_state["these_psa"],
+        map_psa,
         style_function = lambda sa: {"fillOpacity": 0, "weight": 2, "color": "black"},
-        popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'])
+        popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL', "VIOLATIONS_COUNT"])
       ).add_to(m)
 
     mc = FastMarkerCluster("", showCoverageOnHover = False, removeOutsideVisibleBounds = True, icon_create_function="""
@@ -155,7 +183,8 @@ def main():
     # Manipulate data
     try:
       counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "HEALTH_BASED"])[["FAC_NAME"]].count()
-      counts.rename(columns={"FAC_NAME": "COUNT"}, inplace=True)
+      counts.rename(columns={"FAC_NAME": "VIOLATIONS_COUNT"}, inplace=True)
+      counts.loc[counts.index.isin(list(facs_without_violations["FAC_NAME"].unique()),level='FAC_NAME'), "VIOLATIONS_COUNT"] = 0 # Reset facilities with no recorded violations to 0 count
       counts = counts.sort_values(by="FAC_NAME", ascending=False)
     except:
       counts = []
@@ -175,7 +204,7 @@ def main():
     #st.dataframe(counts) 
     st.altair_chart(
       alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
-        x = alt.X("COUNT", title = "Number of violations"),
+        x = alt.X("VIOLATIONS_COUNT", title = "Number of violations"),
         y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x'), # Sort horizontal bar chart
         color = 'HEALTH_BASED'
       ),
@@ -186,6 +215,15 @@ def main():
       
       :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
+
+  # Download Data Button
+  st.download_button(
+    "Download this page's data",
+    st.session_state["violations_data"].to_csv(),
+    "selected_public_water_systems_violations.csv",
+    "text/csv",
+    key='download-csv'
+  )
 
 if __name__ == "__main__":
   main()

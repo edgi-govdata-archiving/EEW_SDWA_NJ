@@ -59,6 +59,10 @@ with st.spinner(text="Loading data..."):
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
   # Set bounds
+  if st.session_state["these_psa"].empty: # If there are no PSA to work with
+    location = location
+  else: # If there are PSA to work with
+    location = st.session_state["these_psa"]
   b = location.geometry.total_bounds
   x1,y1,x2,y2 = location.geometry.total_bounds
   bounds = [[y1, x1], [y2, x2]]
@@ -155,7 +159,10 @@ def main():
           watersheds,
           style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1, "color": "white"}
           ).add_to(m)
-        psas = folium.GeoJson(
+        if st.session_state["these_psa"].empty:
+          pass
+        else:
+          psas = folium.GeoJson(
             st.session_state["these_psa"],
             style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
             tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
@@ -209,5 +216,13 @@ def main():
 
   st.markdown(":arrow_right: What is the impact of these different pollutants? What are the possible impacts at different amounts in drinking water? You can learn more about some pollutants in EPA's [IRIS (Integrated Risk Information System) database](https://iris.epa.gov/AtoZ/?list_type=alpha).")
 
+  # Download Data Button
+  st.download_button(
+    "Download this page's data",
+    dmr.to_csv(),
+    "selected_area_pollutants.csv",
+    "text/csv",
+    key='download-csv'
+  )
 if __name__ == "__main__":
   main()

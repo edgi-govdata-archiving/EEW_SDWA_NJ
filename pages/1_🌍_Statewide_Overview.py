@@ -59,22 +59,20 @@ def main():
           popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'], aliases=['Water system:', 'Website:'])
           ).add_to(m)
 
-        with col1:
-          out = st_folium(
-            m,
-            width = 500,
-            returned_objects=[]
-          )
+        out = st_folium(
+          m,
+          width = 500,
+          returned_objects=[]
+        )
       else:
         # Add markers representing PWS
         for marker in markers:
           m.add_child(marker)
-        with col2:
-          out = st_folium(
-            m,
-            width = 500,
-            returned_objects=[]
-          )
+        out = st_folium(
+          m,
+          width = 500,
+          returned_objects=[]
+        )
 
     with col1:
       with st.spinner(text="Loading interactive map..."):

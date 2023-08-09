@@ -56,7 +56,7 @@ def add_spatial_data(url, name, projection=4326):
   ----------
   url: a zip of shapefile (in the future, extend to geojson)
   name: a string handle for the data files
-  projection (optional): an EPSG projection for the spatial dataa
+  projection (optional): an EPSG projection for the spatial data
 
   Returns
   -------
@@ -135,7 +135,12 @@ with st.spinner(text="Loading data..."):
     st.stop()
 
 # Filter to area
-bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+if st.session_state["these_psa"].empty: # If there are no PSA to work with
+  bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+else: # If there are PSA to work with
+  within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
+  bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
+
 bg_data = bgs
 # Set bounds to drawn area
 x1,y1,x2,y2 = location.geometry.total_bounds
@@ -188,11 +193,14 @@ def main():
           style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
           popup=folium.GeoJsonPopup(fields=[ejdesc], aliases=[prettier_map_labels])
         ).add_to(m)
-        psas = folium.GeoJson(
-          st.session_state["these_psa"],
-          style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
-          tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
-        ).add_to(m) 
+        if st.session_state["these_psa"].empty:
+          pass
+        else:
+          psas = folium.GeoJson(
+            st.session_state["these_psa"],
+            style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
+            tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
+          ).add_to(m) 
         mc = FastMarkerCluster("", showCoverageOnHover = False, removeOutsideVisibleBounds = True, icon_create_function="""
         function (cluster) {
           return L.divIcon({ html: "<span style='border-radius:50%; border:solid #3388ff 1px;padding:5px 10px 5px 10px; background-color:#3388ff; color:white;'>" + cluster.getChildCount() + "</span>", className: 'mycluster' });
@@ -237,11 +245,14 @@ def main():
           style_function = lambda bg: {"fillColor": style(bg), "fillOpacity": .75, "weight": 1, "color": "white"},
           popup=folium.GeoJsonPopup(fields=[envdesc], aliases=[prettier_map_labels])
         ).add_to(m)
-        psas = folium.GeoJson(
-          st.session_state["these_psa"],
-          style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
-          tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
-        ).add_to(m) 
+        if st.session_state["these_psa"].empty:
+          pass
+        else:
+          psas = folium.GeoJson(
+            st.session_state["these_psa"],
+            style_function = lambda bg: {"fill": None, "weight": 2, "color": "black"},
+            tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME', 'AGENCY_URL'])
+          ).add_to(m) 
         mc = FastMarkerCluster("", icon_create_function="""
         function (cluster) {
           return L.divIcon({ html: "<span style='border-radius:50%; border:solid #3388ff 1px;padding:5px 10px 5px 10px; background-color:#3388ff; color:white;'>" + cluster.getChildCount() + "</span>", className: 'mycluster' });
@@ -269,6 +280,15 @@ def main():
       
   st.caption("Source for definitions of environmental justice indicators: [socioeconomic](https://www.epa.gov/ejscreen/overview-socioeconomic-indicators-ejscreen) | [environmental](https://www.epa.gov/ejscreen/overview-environmental-indicators-ejscreen)")
   st.markdown(":arrow_right: What assumptions are built into EPA's choices and definitions of environmental justice indicators?")
+
+  # Download Data Button
+  st.download_button(
+    "Download this page's data",
+    bg_data.to_csv(),
+    "selected_area_ej_measures.csv",
+    "text/csv",
+    key='download-csv'
+  )
 
 if __name__ == "__main__":
   main()

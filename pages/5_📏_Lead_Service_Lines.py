@@ -79,9 +79,14 @@ def main():
   c1 = st.container()
   c2 = st.container()
 
+  if lead_data.empty:
+    with c1:
+      st.error("### There are no purveyor service areas required to count lead service lines in this area.")
+      st.stop()
+
   with c1:
     st.markdown("""
-      # Map of Purveyor Service Areas in Selected Area
+      ## Map of Purveyor Service Areas in Selected Area
       
       According to the [New Jersey Department of Environmental Protection](https://geo.btaa.org/catalog/00e7ff046ddb4302abe7b49b2ddee07e_13),
 
@@ -174,6 +179,16 @@ def main():
               
       :arrow_right: In some selected areas, you may see that some Public Water Systems report "0" and others fail to report ("None" in the table). These are not the same! "None" means that the report is missing. We don't know how many lead service lines there are in that area. Notice that these water systems are missing from the graph. What might be a good way to visualize this missing data?
     """)
+
+  # Download Data Button
+  st.download_button(
+    "Download this page's data",
+    lead_data.to_csv(),
+    "selected_area_leadlines.csv",
+    "text/csv",
+    key='download-csv'
+  )
+
 if __name__ == "__main__":
   main()
 

@@ -124,12 +124,12 @@ with c3:
     sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
 
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
       radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in sdwa_circles.iterrows() if not mark.geometry.is_empty]
 
     local_sdwa_circles = sdwa_circles[sdwa_circles.geometry.intersects(bounds.geometry[0])]
     local_markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["PWS_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
       radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in local_sdwa_circles.iterrows() if not mark.geometry.is_empty]
 
     # Load purveyor service area (PSA) data
