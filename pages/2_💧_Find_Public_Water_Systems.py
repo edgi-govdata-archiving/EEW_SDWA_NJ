@@ -206,6 +206,11 @@ def main():
       """)
 
   with con2:
+    st.markdown("""
+                :face_with_monocle: Why are there both dots and blue areas on the map? We are working with two different datasets. One is from NJDEP and it describes the purveyor service areas (PSAs) - basically, the areas covered by different municipal water systems. Those are the blue polygons on the map (and on other pages, black outlines). The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
+                
+                Every polygon on the map (every PSA) should also have a corresponding point somewhere. But in EPA's database, although each PWS has an address with a zip code, instead of using that information to find the exact latitude and longitude of the facility, EPA instead calculates the latitude and longitude of the zip code and puts the facility there. That's why Newark Water Department is in West Orange and the Township of Wayne Water Department is in Wanaque. It's also why you will see, for example, over 100 dots in the exact same location in Wanaque. 
+                """)
     st.markdown("## Summary of Public Water Systems by Type, Size, and Source")
     st.markdown("""
       Click through the tabs below to see summaries of the selected area's water systems based on different EPA categorizations.
