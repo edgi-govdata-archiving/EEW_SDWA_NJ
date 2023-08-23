@@ -1,4 +1,4 @@
-# streamlit_test
+# Exploring Safe Drinking Water in New Jersey
 An open educational resource developed at the [Environmental Data and Governance Initiative (EDGI)](//envirodatagov.org) for interactive exploration of New Jersey's waters and water pollution.
 
 # Instructions for use
