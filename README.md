@@ -2,7 +2,7 @@
 An open educational resource developed at the [Environmental Data and Governance Initiative (EDGI)](//envirodatagov.org) for interactive exploration of New Jersey's waters and water pollution.
 
 # Instructions for use
-This project is staged at [https://sdwa-eew.streamlit.app/](https://sdwa-eew.streamlit.app/).
+This project is staged at [https://eew-sdwa-nj.streamlit.app/](https://eew-sdwa-nj.streamlit.app/).
 
 # Instructions for development
 This app is rendered in Streamlit. To run locally:
