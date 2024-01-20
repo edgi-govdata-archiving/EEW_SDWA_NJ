@@ -7,7 +7,7 @@ This project is staged at [https://eew-sdwa-nj.streamlit.app/](https://eew-sdwa-
 # Instructions for development
 This app is rendered in Streamlit. To run locally:
 
-1. Install project requirements with `pipenv install`. You may also need to run `pipenv shell`.
+1. Install project requirements with `pipenv sync`. You may also need to run `pipenv shell`.
 2. Run this app with `streamlit run Welcome.py`
 
 # Credits
