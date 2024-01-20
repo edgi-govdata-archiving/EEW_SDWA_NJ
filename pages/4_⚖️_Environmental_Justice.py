@@ -121,8 +121,10 @@ with st.spinner(text="Loading data..."):
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
   census_data = census_data.join(ej_data) # join based on this shared id
   census_data = census_data[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
-  census_data[[i for i in ej_parameters]] = round(census_data[[i for i in ej_parameters]] * 100, 2) # Convert decimal values to percentages and then stringify to add % symbol
-  census_data[[i for i in ej_parameters]] = census_data[[i for i in ej_parameters]].astype(str) + "%"
+  census_data[[i for i in socecon]] = round(census_data[[i for i in socecon]] * 100, 2) # Convert percentage decimals (0-1) to proper percentages...
+  census_data[[i for i in socecon]] = census_data[[i for i in socecon]].astype(str) + "%" # ...and then stringify to add % symbol
+  census_data[[i for i in env]] = round(census_data[[i for i in env]], 2) # Round everything else to 2 decimal digits
+  census_data[[i for i in env]] = census_data[[i for i in env]].astype(str) # ...and then stringify
   census_data.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
   ej_dict = {v: k for k, v in ej_dict.items()} # re-reverse the key/value dictionary mapping for later use
 
