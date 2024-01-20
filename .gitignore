@@ -1,2 +1,8 @@
 
 .DS_Store
+*.shx
+*.xml
+*.shp
+*.prj
+*.dbf
+*.cpg
