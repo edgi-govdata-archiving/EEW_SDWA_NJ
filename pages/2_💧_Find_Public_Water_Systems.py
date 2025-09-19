@@ -142,6 +142,8 @@ def main():
     ## Join PSA/PWS and PWS (some will already match - where the marker is actually in the bounds)
     data = pd.concat([data,psa_pws]).drop_duplicates(subset=["PWSID"]).reset_index(drop=True)
     # Process data, make markers for mapping
+    data = data[data.geometry.is_valid] # For mapping purposes, remove invalid geometries
+    data = data[~data.geometry.is_empty] # For mapping purposes, remove empty geometries
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
       popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
       radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]], fill_opacity = 1) for index,mark in data.iterrows() if mark.geometry.is_valid]
