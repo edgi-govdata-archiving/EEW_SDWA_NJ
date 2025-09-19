@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -19,7 +18,7 @@ st.set_page_config(layout="wide", page_title="🌍 Statewide Overview")
 
 previous = st.button("Previous: Welcome")
 if previous:
-    switch_page("welcome")
+    st.switch_page("Welcome.py")
 
 st.markdown("""
   # Statewide Overview of Public Water Systems
@@ -46,7 +45,7 @@ def main():
     
     col1, col2 = st.columns(2)
 
-    @st.cache_data(experimental_allow_widgets=True)
+    #@st.cache_data()
     def make_map(shape):
       m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, zoom_control=False, scrollWheelZoom=False, dragging=False, tiles="cartodb positron")
 
@@ -95,7 +94,7 @@ def main():
       """)
 
       st.markdown("""
-        ### :face_with_monocle: Why are there PWS shown outside of New Jersey?
+        ### :thinking: Why are there PWS shown outside of New Jersey?
         This is an example of data errors in the EPA database. Sometimes, a facility will be listed with a NJ address
         but its latitude and longitude actually correspond to somewhere out of state.
 
@@ -198,7 +197,7 @@ def main():
 
     next = st.button("Next: Find Public Water Systems")
     if next:
-        switch_page("find public water systems")
+        st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 if __name__ == "__main__":
     main()
 

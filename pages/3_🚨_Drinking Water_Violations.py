@@ -5,7 +5,6 @@ import pandas as pd
 import json
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -17,7 +16,7 @@ st.set_page_config(layout="wide", page_title="🚨 Drinking Water Violations")
 
 previous = st.button("Previous: Find Public Water Systems")
 if previous:
-    switch_page("find public water systems")
+    st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 
 st.markdown(""" # Violations of the Safe Drinking Water Act (SDWA)
 
@@ -58,6 +57,8 @@ def marker_maker(data, facs_without_violations):
   data = context.join(data).reset_index().drop_duplicates(subset=["PWSID"])
   data.loc[data["PWSID"].isin(facs_without_violations), "VIOLATIONS_COUNT"] = 0  # Find facs_without_violations and set count to 0
   colorscale = branca.colormap.linear.Reds_05.scale(data["VIOLATIONS_COUNT"].min(), data["VIOLATIONS_COUNT"].max())
+  # remove unmappable points
+  to_map = data.loc[~data["FAC_LONG"].isna()]
   # Map PWS
   markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
     popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Violations since 2001:</b> '+
@@ -68,7 +69,7 @@ def marker_maker(data, facs_without_violations):
     fill_color=colorscale(mark["VIOLATIONS_COUNT"]),
     fill_opacity=1,
     weight=1,
-    stroke="white") for index,mark in data.iterrows() if mark["FAC_LONG"] is not None]
+    stroke="white") for index, mark in to_map.iterrows() if (mark["FAC_LONG"] is not None) & (mark["FAC_LAT"] is not None)]
   return markers, colorscale, data
 
 # Reload, but don't map, PWS
@@ -155,6 +156,7 @@ def main():
     mc.add_to(m)
 
     m.fit_bounds(bounds)
+    m.add_child(st.session_state["violations_colorscale"])
 
   with col1:
     with st.spinner(text="Loading interactive map..."):
@@ -172,12 +174,10 @@ def main():
       | Circle color | Number of drinking water violations since 2001 |
       | Blue circle with white text | There are multiple facilities with violations in this area, try zooming in |
       | Black outlines | Purveyor Service Area boundaries |
-                
-      ### Color Scale
-      Number of drinking water violations: the darker the shade of red, the more violations at the facility
+      | Shades of red | Number of drinking water violations: the darker the shade of red, the more violations at the facility
     """)
-    st.session_state["violations_colorscale"].width = 450
-    st.write(st.session_state["violations_colorscale"])
+    #st.session_state["violations_colorscale"].width = 450
+    #st.html(st.session_state["violations_colorscale"])
 
   with c2:
     # Manipulate data
@@ -213,7 +213,7 @@ def main():
     st.markdown("""
       :arrow_right: In addition to "health-based violations," how might failures to monitor and report drinking water quality, or failures to notify the public, also factor into health outcomes?
       
-      :face_with_monocle: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
+      :thinking: Want to learn more about SDWA, all the terms that are used, and the way the law is implemented? EPA maintains an FAQ page [here](https://echo.epa.gov/help/sdwa-faqs).
     """)
 
   # Download Data Button
@@ -230,4 +230,4 @@ if __name__ == "__main__":
 
 next = st.button("Next: Environmental Justice")
 if next:
-    switch_page("environmental justice")
+    st.switch_page("pages/4_⚖️_Environmental_Justice.py")

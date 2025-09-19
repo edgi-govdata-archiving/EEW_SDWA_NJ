@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -17,7 +16,7 @@ st.set_page_config(layout="wide", page_title="⚖️ Environmental Justice")
 
 previous = st.button("Previous: Safe Drinking Water Act Violations")
 if previous:
-    switch_page("sdwa violations")
+    st.switch_page("pages/3_🚨_Drinking Water_Violations.py")
 
 st.markdown("""
 # How do SDWA Violations relate to Environmental Justice (EJ) in the Selected Area?
@@ -28,12 +27,12 @@ correlation with neighborhood-level factors such as race, income, age, or educat
 
 st.caption("""
   Remember: if you want to change the boundaries of the selected area, you can always go back to the 
-"Statewide Violations" page and do so, then return here.
+"Find Public Water Systems" page and do so, then return here.
 """)
 
-redraw = st.button("< Return to SDWA Violations to change selected area")
+redraw = st.button("< Return to Find Public Water Systems to change selected area")
 if redraw:
-    switch_page("SDWA Violations")
+    st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 
 st.markdown("""
   ## Select environmental justice measures
@@ -64,7 +63,7 @@ def add_spatial_data(url, name, projection=4326):
   
   """
 
-  r = requests.get(url) 
+  r = requests.get(url, verify=False) 
   z = zipfile.ZipFile(io.BytesIO(r.content))
   z.extractall(name)
   sd = geopandas.read_file(""+name+"/")
@@ -114,7 +113,7 @@ ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" va
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
-  census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2017/BG/tl_2017_34_bg.zip", name="census") #, projection=4269
+  census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2024/BG/tl_2024_34_bg.zip", name="census") #, projection=4269
   ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
   ej_data["ID"] = ej_data["ID"].astype(str) # set the Census id as a string
   census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
@@ -183,11 +182,17 @@ def main():
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Greens_05.scale(bg_data[ejdesc].str.strip("%").astype(float).min(), bg_data[ejdesc].str.strip("%").astype(float).max()) # 0 - 1?
         colorscale.width = map_and_colorbar_widths
-        st.write(colorscale)
+        colorscale.caption = ejdesc
+        #st.write(colorscale)
+        m.add_child(colorscale)
         def style(feature):
           # choropleth approach
           # set colorscale
-          return "#d3d3d3" if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
+          try:
+            c = colorscale(float(feature["properties"][ejdesc].strip("%")))
+          except:
+            c = "#d3d3d3"
+          return c#if feature["properties"][ejdesc] is None else colorscale(float(feature["properties"][ejdesc].strip("%")))
 
         prettier_map_labels = ejdesc + ":&nbsp" # Adds a space between the field name and value
         blockgroups = folium.GeoJson(
@@ -235,11 +240,18 @@ def main():
         m.fit_bounds(bounds)
         colorscale = branca.colormap.linear.Blues_05.scale(bg_data[envdesc].str.strip("%").astype(float).min(), bg_data[envdesc].str.strip("%").astype(float).max()) # 0 - 1?
         colorscale.width = map_and_colorbar_widths
-        st.write(colorscale)
+        colorscale.caption = envdesc
+        #st.write(colorscale)
+        m.add_child(colorscale)
         def style(feature):
           # choropleth approach
           # set colorscale
-          return "#d3d3d3" if feature["properties"][envdesc] is None else colorscale(float(feature["properties"][envdesc].strip("%")))
+          try:
+            c = colorscale(float(feature["properties"][envdesc].strip("%")))
+          except:
+            c = "#d3d3d3"
+          return c
+          #return "#d3d3d3" if feature["properties"][envdesc] is None else colorscale(float(feature["properties"][envdesc].strip("%")))
 
         prettier_map_labels = envdesc + ":&nbsp" # Adds a space between the field name and value
         blockgroups = folium.GeoJson(
@@ -297,4 +309,4 @@ if __name__ == "__main__":
 
 next = st.button("Next: Lead Service Lines")
 if next:
-    switch_page("lead service lines")
+    st.switch_page("pages/5_📏_Lead_Service_Lines.py")

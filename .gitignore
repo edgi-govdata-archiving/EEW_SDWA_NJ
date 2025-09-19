@@ -14,3 +14,10 @@ PSAs/Purveyor_Service_Areas_of_New_Jersey.prj
 PSAs/Purveyor_Service_Areas_of_New_Jersey.shp
 PSAs/Purveyor_Service_Areas_of_New_Jersey.shx
 PSAs/Purveyor_Service_Areas_of_New_Jersey.xml
+*.cpg
+*.dbf
+*.prj
+*.shp
+*.xml
+*.shx
+.python-version

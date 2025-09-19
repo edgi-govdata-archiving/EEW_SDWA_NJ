@@ -1,21 +1,19 @@
 [[source]]
-url = "https://pypi.python.org/simple"
+url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
 [packages]
-streamlit = "*"
-pandas = "*"
-urllib3 = "*"
-folium = "*"
-geopandas = "*"
-streamlit-folium = "*"
 requests = "*"
+urllib3 = "*"
+pandas = "*"
+geopandas = "*"
 branca = "*"
-streamlit-extras = "*"
+streamlit = "*"
+folium = "*"
+streamlit-folium = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.9"
-python_full_version = "3.9.16"
+python_version = "3.13"
