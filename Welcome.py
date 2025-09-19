@@ -3,7 +3,6 @@
 #https://docs.streamlit.io/library/get-started/create-an-app
 
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import pandas as pd
 import urllib.parse
@@ -122,15 +121,17 @@ with c3:
 
     ## Convert to circle markers
     sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
+    sdwa_circles = sdwa_circles[sdwa_circles.geometry.is_valid] # For mapping purposes, remove invalid geometries
+    sdwa_circles = sdwa_circles[~sdwa_circles.geometry.is_empty] # For mapping purposes, remove empty geometries
 
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
       popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in sdwa_circles.iterrows() if not mark.geometry.is_empty]
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index, mark in sdwa_circles.iterrows() if mark.geometry.is_valid]
 
     local_sdwa_circles = sdwa_circles[sdwa_circles.geometry.intersects(bounds.geometry[0])]
     local_markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
       popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in local_sdwa_circles.iterrows() if not mark.geometry.is_empty]
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in local_sdwa_circles.iterrows() if mark.geometry.is_valid]
 
     # Load purveyor service area (PSA) data
     service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
@@ -156,7 +157,7 @@ with c3:
 
     next = st.button("Get Started! >")
     if next:
-        switch_page("statewide overview")
+        st.switch_page("pages/1_🌍_Statewide_Overview.py")
 
   with c4:
     st.markdown("""

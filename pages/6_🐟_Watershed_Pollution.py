@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -18,19 +17,19 @@ st.set_page_config(layout="wide", page_title="🐟 Watershed Pollution")
 
 previous = st.button("Previous: Lead Service Lines")
 if previous:
-    switch_page("lead service lines")
+    st.switch_page("pages/5_📏_Lead_Service_Lines.py")
 
 st.markdown("""
   # What Pollutants are Allowed to be Released in the Watershed(s) in the Selected Area?""")
 
 st.caption("""
   Remember: if you want to change the boundaries of the selected area, you can always go back to the 
-"Statewide Violations" page and do so, then return here.
+"Find Public Water Systems" page and do so, then return here.
 """)
 
-redraw = st.button("< Return to SDWA Violations to change selected area")
+redraw = st.button("< Return to Find Public Water Systems to change selected area")
 if redraw:
-    switch_page("SDWA Violations")
+    st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 
 st.markdown("On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.")
 
@@ -202,7 +201,7 @@ def main():
       | Black outlines | Purveyor Service Area boundaries |
   
                   
-      :face_with_monocle: What are the industry codes in the popup (NAICS, SIC)? These numbers can be looked up to get a sense of what that business does. [More information.](https://www.dnb.com/resources/sic-naics-industry-codes.html)
+      :thinking: What are the industry codes in the popup (NAICS, SIC)? These numbers can be looked up to get a sense of what that business does. [More information.](https://www.dnb.com/resources/sic-naics-industry-codes.html)
     """)
 
     units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in

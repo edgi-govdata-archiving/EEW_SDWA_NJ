@@ -5,7 +5,6 @@ import pandas as pd
 import json
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -15,9 +14,9 @@ import altair as alt
 
 st.set_page_config(layout="wide", page_title="💧 Find Public Water Systems")
 
-previous = st.button("Previous: Welcome")
+previous = st.button("Previous: Statewide Overview")
 if previous:
-    switch_page("welcome")
+    st.switch_page("pages/1_🌍_Statewide_Overview.py")
 
 st.markdown(""" # Search for Public Water Systems
 
@@ -145,13 +144,13 @@ def main():
     # Process data, make markers for mapping
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
       popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]], fill_opacity = 1) for index,mark in data.iterrows() if not mark.geometry.is_empty]
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]], fill_opacity = 1) for index,mark in data.iterrows() if mark.geometry.is_valid]
     # Save data
     st.session_state["these_psa"] = psa_gdf
     st.session_state["these_markers"] = markers
     st.session_state["these_data"] = data
     st.session_state["box"] = bounds
-    st.experimental_rerun()
+    st.rerun()
 
   con1 = st.container()
   con2 = st.container()
@@ -172,7 +171,7 @@ def main():
         tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME'], labels=False),
         popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'PWID_URL', 'AGENCY_URL', 'NOTES'], aliases=['System name:', 'State-level reports:', 'Agency website:', 'Notes:'])
         )
-      ) # Styling doesn't work. See: https://github.com/randyzwitch/streamlit-folium/issues/121
+      )
     mc = FastMarkerCluster("", showCoverageOnHover = False, removeOutsideVisibleBounds = True)
     for marker in st.session_state["these_markers"]:
       mc.add_child(marker)
@@ -207,7 +206,7 @@ def main():
 
   with con2:
     st.markdown("""
-                :face_with_monocle: Why are there both dots and blue areas on the map? We are working with two different datasets. One is from NJDEP and it describes the purveyor service areas (PSAs) - basically, the areas covered by different municipal water systems. Those are the blue polygons on the map (and on other pages, black outlines). The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
+                :thinking: Why are there both dots and blue areas on the map? We are working with two different datasets. One is from NJDEP and it describes the purveyor service areas (PSAs) - basically, the areas covered by different municipal water systems. Those are the blue polygons on the map (and on other pages, black outlines). The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
                 
                 Every polygon on the map (every PSA) should also have a corresponding point somewhere. But in EPA's database, although each PWS has an address with a zip code, instead of using that information to find the exact latitude and longitude of the facility, EPA instead calculates the latitude and longitude of the zip code and puts the facility there. That's why Newark Water Department is in West Orange and the Township of Wayne Water Department is in Wanaque. It's also why you will see, for example, over 100 dots in the exact same location in Wanaque. 
                 """)
@@ -296,4 +295,4 @@ if __name__ == "__main__":
 
 next = st.button("Next: Drinking Water Violations")
 if next:
-    switch_page("drinking water violations")
+    st.switch_page("pages/3_🚨_Drinking Water_Violations.py")

@@ -4,7 +4,6 @@
 import pandas as pd
 import urllib.parse
 import streamlit as st
-from streamlit_extras.switch_page_button import switch_page
 from streamlit_folium import st_folium
 import geopandas
 import folium
@@ -18,7 +17,7 @@ st.set_page_config(layout="wide", page_title="📏 Lead Service Lines")
 
 previous = st.button("Previous: Environmental Justice")
 if previous:
-    switch_page("environmental justice")
+    st.switch_page("pages/4_⚖️_Environmental_Justice.py")
 
 st.markdown("""
   # Lead Service Lines by Purveyor Service Area
@@ -29,9 +28,9 @@ st.caption("""
 "Statewide Violations" page and do so, then return here.
 """)
 
-redraw = st.button("< Return to SDWA Violations to change selected area")
+redraw = st.button("< Return to Find Public Water Systems to change selected area")
 if redraw:
-    switch_page("SDWA Violations")
+    st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 
 st.markdown("""
   In New Jersey, there are some public water systems that serve
@@ -97,10 +96,14 @@ def main():
     col1, col2 = st.columns(2)
     with col1:
       with st.spinner(text="Loading interactive map..."):
-        colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Number of lead service lines in area"].min(), lead_data["Number of lead service lines in area"].max())
-        colorscale.width=500
         m = folium.Map(tiles="cartodb positron")
         m.fit_bounds(bounds)
+
+        # Do colorscale
+        colorscale = branca.colormap.linear.Blues_05.scale(lead_data["Number of lead service lines in area"].min(), lead_data["Number of lead service lines in area"].max())
+        colorscale.caption = "Number of lead service lines in area"
+        m.add_child(colorscale)
+        
         def style(feature):
           # choropleth approach
           # set colorscale
@@ -120,12 +123,6 @@ def main():
         )
 
       with col2:
-        st.markdown("""
-          ### Color Scale
-          Number of lead service lines in area
-          """)
-        
-        st.write(colorscale)
         
         st.markdown("""
           ### Map Legend
@@ -170,7 +167,7 @@ def main():
   """)
   
   st.markdown("""
-      ### :face_with_monocle: How should we understand these numbers?
+      ### :thinking: How should we understand these numbers?
       This data is difficult to present in a way that's easy to intuitively grasp, because although the database gives us the *number* of lead service lines, it doesn't help us understand *who is impacted* or *how likely a given tap in that water system is* to have some lead in the water.
       
       A lead service line is a lead water line that goes from the city's main to someone's house. We could present the number of lead lines as a percentage of total lines, but that could be misleading, because we don't know how many people are served by each line. For instance, if you had 2,000 lead lines and served a population of 40,000, the "raw" percentage would be 5%, but that assumes each person has their own service line, lead or otherwise. In reality, it is households/buildings that receive service lines, and these may serve 0 to 100s of people. In theory, those 2,000 lead lines could serve all 40,000 residents - but we just don't have that granular level of information. There may also be inaccuracies or imprecision in the measure of the population served (e.g. do children count? When was the last census? How was the count conducted? Are there populations that are likely to have been left out?)
@@ -194,4 +191,4 @@ if __name__ == "__main__":
 
 next = st.button("Next: Watershed Pollution")
 if next:
-    switch_page("watershed pollution")
+    st.switch_page("pages/6_🐟_Watershed_Pollution.py")
