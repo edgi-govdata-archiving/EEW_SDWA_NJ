@@ -162,9 +162,10 @@ def main():
 
     fg = folium.FeatureGroup()
 
-    if st.session_state["these_psa"] is None:
+    if (st.session_state["these_psa"] is None) | (st.session_state["these_psa"].empty): # Sometimes, due to dynamic nature of Streamlit, dataframe starts out empty so we pass
       pass
     else:
+      #print(st.session_state["these_psa"])
       fg.add_child(folium.GeoJson(
         st.session_state["these_psa"],
         style_function = lambda x: {"fillOpacity": 0, "fillColor": None, "weight": 2, "color": "black"},
