@@ -46,12 +46,12 @@ with c2:
   """)
 
 @st.cache_data
-def get_data(query):
+def get_data():
   try:
     # Get data
-    url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    #url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
+    #data_location = url + urllib.parse.quote_plus(query) + '&pg'
+    data = pd.read_csv("data/NJ_PWS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
     # Map all SDWA PWS
     sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
     return sdwa
@@ -89,17 +89,22 @@ def add_spatial_data(url, name, projection=4326):
 with c3:
   with st.spinner(text="Loading data..."):
     # Load PWS data
-    sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
-    sdwa = get_data(sql)
-
+    #sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
+    sdwa = get_data()
+    
     # String manipulations to make output more readable
+    #https://echo.epa.gov/tools/data-downloads/sdwa-download-summary#PWS
     source_acronym_dict = {
-      'GW': 'Groundwater',
-      'SW': 'Surface water'
+      'GW': 'Ground water',
+      'GWP': 'Ground water purchased',
+      'SW': 'Surface water',
+      'SWP': 'Surface water purchased',
+      'GU': 'Groundwater under influence of surface water',
+      'GUP': 'Purchased ground water under influence of surface water source'
     }
     for key, value in source_acronym_dict.items():
-      sdwa['SOURCE_WATER'] = sdwa['SOURCE_WATER'].str.replace(key, value)
-    s = {"Groundwater": False, "Surface water": True}
+      sdwa.loc[sdwa['PRIMARY_SOURCE_CODE']==key, "PRIMARY_SOURCE_CODE"] = value
+    s = {source_acronym_dict[s]: True if "SW" in s else False for s in source_acronym_dict.keys()}
 
     type_acronym_dict = {
       'NTNCWS': 'Non-Transient, Non-Community Water System',
@@ -120,18 +125,18 @@ with c3:
     #x1,y1,x2,y2 = bounds.geometry.total_bounds
 
     ## Convert to circle markers
-    sdwa_circles = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
+    sdwa_circles = sdwa#.loc[sdwa["FISCAL_YEAR"] == 2021]  # For mapping purposes, remove any duplicates and non-current entries
     sdwa_circles = sdwa_circles[sdwa_circles.geometry.is_valid] # For mapping purposes, remove invalid geometries
     sdwa_circles = sdwa_circles[~sdwa_circles.geometry.is_empty] # For mapping purposes, remove empty geometries
 
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index, mark in sdwa_circles.iterrows() if mark.geometry.is_valid]
+      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["PRIMARY_SOURCE_CODE"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["PRIMARY_SOURCE_CODE"]]) for index, mark in sdwa_circles.iterrows() if mark.geometry.is_valid]
 
     local_sdwa_circles = sdwa_circles[sdwa_circles.geometry.intersects(bounds.geometry[0])]
     local_markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]]) for index,mark in local_sdwa_circles.iterrows() if mark.geometry.is_valid]
+      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["PRIMARY_SOURCE_CODE"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["PRIMARY_SOURCE_CODE"]]) for index,mark in local_sdwa_circles.iterrows() if mark.geometry.is_valid]
 
     # Load purveyor service area (PSA) data
     service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
