@@ -72,28 +72,30 @@ def get_data():
         
 # Get service area data
 @st.cache_data
-def add_spatial_data(url, name, projection=4326):
-  """
-  Gets external geospatial data
-  
-  Parameters
-  ----------
-  url: a zip of shapefile (in the future, extend to geojson)
-  name: a string handle for the data files
-  projection (optional): an EPSG projection for the spatial dataa
+def add_spatial_data(url):
+  # Define the parameters for the GET request according to the ArcGIS REST API documentation.
+  params = {
+      'where': '1=1', # Return all features
+      'outFields': '*',  # Return all available attribute fields
+      'returnGeometry': 'true', # Include the geometry of the features in the response
+      'f': 'geojson' # Specify the response format as JSON
+  }
 
-  Returns
-  -------
-  sd: spatial data reads ]as a geodataframe and projected to a specified projected coordinate system, or defaults to GCS
-  
-  """
+  try:
+    # Send the GET request to the server
+    response = requests.get(url, params=params)
+    # Raise an HTTPError for bad responses (4xx or 5xx)
+    response.raise_for_status()
+    
+    # Parse the JSON response and return it
+    return response.json()
 
-  r = requests.get(url) 
-  z = zipfile.ZipFile(io.BytesIO(r.content))
-  z.extractall(name)
-  sd = geopandas.read_file(""+name+"/")
-  sd.to_crs(crs=projection, inplace=True) # transform to input projection, defaults to WGS GCS
-  return sd
+  except requests.exceptions.RequestException as e:
+    print(f"An error occurred while making the request: {e}")
+    return None
+  except json.JSONDecodeError:
+    print("Failed to decode the JSON response from the server.")
+    return None
 
 # Initial query (NJ PWS)
 with c3:
@@ -149,7 +151,15 @@ with c3:
       radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["PRIMARY_SOURCE_CODE"]]) for index,mark in local_sdwa_circles.iterrows() if mark.geometry.is_valid]
 
     # Load purveyor service area (PSA) data
-    service_areas = add_spatial_data("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/Purveyor_Service_Areas_of_New_Jersey.zip", "PSAs") # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
+    service_areas = add_spatial_data(
+      "https://mapsdep.nj.gov/arcgis/rest/services/Features/Utilities/MapServer/13/query"
+    ) # downloaded from: https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e/explore?location=40.110098%2C-74.748900%2C9.33
+
+    
+    # Create the GeoDataFrame from the parsed attributes and geometries.
+    service_areas = geopandas.GeoDataFrame.from_features(service_areas, crs=4326)
+    #service_areas.to_crs(4326, inplace=True) # Project data
+    #st.write(service_areas)
     service_areas.set_index("PWID", inplace=True)
 
     # Save data
