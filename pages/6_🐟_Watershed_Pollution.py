@@ -42,6 +42,7 @@ st.caption("""
 import requests
 import json
 
+@st.cache_data
 def find_intersecting_huc12(bounds):
   """
   Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
@@ -154,6 +155,9 @@ with st.spinner(text="Loading data..."):
   # Create the GeoDataFrame from the parsed attributes and geometries.
   watersheds = geopandas.GeoDataFrame(data=attributes, geometry=geometries, crs=spatial_ref)
   watersheds.to_crs(4326, inplace=True) # Project data
+
+  within = watersheds.sindex.query(location.geometry, predicate="intersects")
+  watersheds = watersheds.iloc[list(set(within[1]))]
   # Create GeoDataFrame
   # Convert the Esri JSON features to a format suitable for GeoPandas
   # This involves creating a Shapely geometry object from the geometry dictionary

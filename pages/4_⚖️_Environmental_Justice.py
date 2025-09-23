@@ -47,6 +47,62 @@ st.markdown("""
 """)
 
 @st.cache_data
+def find_intersecting_bgs(bounds):
+  """
+  Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
+
+  The script targets the Watershed Boundary Dataset (WBD) map service.
+
+  Args:
+      bounds (list): A list of two points [[y1, x1], [y2, x2]] defining the bounding box,
+                     where 'y' is latitude and 'x' is longitude.
+
+  Returns:
+      dict: A dictionary parsed from the JSON response containing the intersecting features,
+            or None if an error occurs.
+  """
+  # The ArcGIS REST API endpoint for querying the HUC12 layer.
+  # Layer '6' corresponds to HUC12 watersheds.
+  url = "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/arcgis/rest/services/Census_Block_Groups_2020_Hosted_3424/FeatureServer/5/query"
+
+  # Extract coordinates and determine the min/max values for the envelope.
+  # The API expects the format xmin, ymin, xmax, ymax.
+  y1, x1 = bounds[0]
+  y2, x2 = bounds[1]
+
+  xmin = min(x1, x2)
+  ymin = min(y1, y2)
+  xmax = max(x1, x2)
+  ymax = max(y1, y2)
+
+  # Define the parameters for the GET request according to the ArcGIS REST API documentation.
+  params = {
+      'geometry': f'{xmin},{ymin},{xmax},{ymax}',
+      'geometryType': 'esriGeometryEnvelope',
+      'inSR': '4326',  # Input spatial reference: WGS 84 (standard lat/lon)
+      'spatialRel': 'esriSpatialRelIntersects', # The spatial relationship to find
+      'outFields': '*',  # Return all available attribute fields
+      'returnGeometry': 'true', # Include the geometry of the features in the response
+      'f': 'json' # Specify the response format as JSON
+  }
+
+  try:
+    # Send the GET request to the server
+    response = requests.get(url, params=params)
+    # Raise an HTTPError for bad responses (4xx or 5xx)
+    response.raise_for_status()
+    
+    # Parse the JSON response and return it
+    return response.json()
+
+  except requests.exceptions.RequestException as e:
+    print(f"An error occurred while making the request: {e}")
+    return None
+  except json.JSONDecodeError:
+    print("Failed to decode the JSON response from the server.")
+    return None
+
+@st.cache_data
 def add_spatial_data(url, name, projection=4326):
   """
   Gets external geospatial data
@@ -130,9 +186,6 @@ ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" va
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
-  census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2024/BG/tl_2024_34_bg.zip", name="census") #, projection=4269
-  census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
-  
   # Use location to narrow query of EJ data
   ## Convert box
   with st.spinner(text="Loading data..."):
@@ -141,21 +194,54 @@ with st.spinner(text="Loading data..."):
     except:
       st.error("### Error: Please start on the 'Welcome' page.")
       st.stop()
+  
+  #census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2024/BG/tl_2024_34_bg.zip", name="census") #, projection=4269
+  # Set bounds to drawn area
+  x1,y1,x2,y2 = location.geometry.total_bounds
+  bounds = [[y1, x1], [y2, x2]]
 
+  census_data = find_intersecting_bgs(bounds)
+  #st.write(census_data)
+  #census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
+  spatial_ref = census_data["spatialReference"]["latestWkid"]
+  #st.write(watersheds_features)
+  #st.write(watersheds_features)
+  from shapely import Polygon#.geometry import shape
+  valid_features = [f for f in census_data['features'] if f.get('geometry') and "rings" in f["geometry"]]
+  #st.write(valid_features)
+  geometries = []
+  attributes = []
+  for feature in valid_features:
+    try:
+      geometries.append(Polygon(feature['geometry']["rings"][0]))
+      attributes.append(feature['attributes'])
+    except AttributeError:
+      pass 
+  
+  # Create the GeoDataFrame from the parsed attributes and geometries.
+  census_data = geopandas.GeoDataFrame(data=attributes, geometry=geometries, crs=spatial_ref)
+  census_data.to_crs(4326, inplace=True) # Project data
+  #census_data = geopandas.clip(census_data, location.geometry)
+  within = census_data.sindex.query(location.geometry, predicate="intersects")
+  census_data = census_data.iloc[list(set(within[1]))]
+  #st.write(census_data)
+  census_data["GEOID20"] = census_data["GEOID20"].astype(str)
+  census_data.set_index("GEOID20", inplace=True)
   ## Filter to area
-  if st.session_state["these_psa"].empty: # If there are no PSA to work with
-    bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
-  else: # If there are PSA to work with
-    within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
-    bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
-
+  #if st.session_state["these_psa"].empty: # If there are no PSA to work with
+  #  bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+  #else: # If there are PSA to work with
+  #  within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
+  #  bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
+  #st.write(census_data)
   #st.write(bgs)
-  ej_data = get_data(list(bgs.reset_index()["GEOID"].unique()))#pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
+  ej_data = get_data(list(census_data.reset_index()["GEOID20"].unique()))#pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
   ej_data["ID"] = ej_data["ID"].astype(str) # set the Census id as a string
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
-
+  #st.write(ej_data)
   # Join census and EJ data
-  bgs = bgs.join(ej_data) # join based on this shared id
+  bgs = census_data.join(ej_data) # join based on this shared id
+  #st.write(bgs)
   bgs = bgs[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
   bgs[[i for i in socecon]] = round(bgs[[i for i in socecon]] * 100, 2) # Convert percentage decimals (0-1) to proper percentages...
   bgs[[i for i in socecon]] = bgs[[i for i in socecon]].astype(str) + "%" # ...and then stringify to add % symbol
@@ -166,10 +252,7 @@ with st.spinner(text="Loading data..."):
 
   # Prepare for mapping
   bg_data = bgs
-  
-  # Set bounds to drawn area
-  x1,y1,x2,y2 = location.geometry.total_bounds
-  bounds = [[y1, x1], [y2, x2]]
+
   # bgs back to features
   bgs = json.loads(bgs.to_json())
  
