@@ -43,6 +43,103 @@ import requests
 import json
 
 @st.cache_data
+def query_paginated_features(service_url, layer_id, where_clause="1=1", out_fields="*", page_size=None, distinct=False):
+    """
+    Queries an ArcGIS Feature Server layer with pagination.
+
+    Args:
+        service_url (str): The base URL of the ArcGIS Feature Service.
+        layer_id (int): The ID of the feature layer to query.
+        where_clause (str): The SQL WHERE clause for filtering features.
+        out_fields (str): Comma-separated list of fields to return, or "*" for all.
+        page_size (int, optional): The number of records per page. If None,
+                                   it tries to determine maxRecordCount from service.
+
+    Returns:
+        list: A list of all features retrieved from the layer.
+    """
+    all_features = []
+    current_offset = 0
+
+    # Get maxRecordCount if page_size is not specified
+    if page_size is None:
+        service_info_url = f"{service_url}/{layer_id}"
+        service_info_params = {"f": "json"}
+        service_info_response = requests.get(service_info_url, params=service_info_params).json()
+        page_size = service_info_response.get("maxRecordCount", 1000) # Default to 1000 if not found
+
+    while True:
+        query_params = {
+            "where": where_clause,
+            "outFields": out_fields,
+            "resultOffset": current_offset,
+            "resultRecordCount": page_size,
+            "return_distinct_values": distinct,
+            "f": "json",
+            "returnGeometry": "false" # Set to true if you need geometry
+        }
+        query_url = f"{service_url}/{layer_id}/query"
+        response = requests.get(query_url, params=query_params).json()
+
+        if "features" in response:
+            all_features.extend(response["features"])
+
+        if not response.get("exceededTransferLimit"):
+            break  # No more pages
+
+        current_offset += page_size
+
+    return all_features
+
+@st.cache_data
+def get_dmrs(wids):
+  """
+  Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
+
+  The script targets the Watershed Boundary Dataset (WBD) map service.
+
+  Args:
+      bounds (list): A list of two points [[y1, x1], [y2, x2]] defining the bounding box,
+                     where 'y' is latitude and 'x' is longitude.
+
+  Returns:
+      dict: A dictionary parsed from the JSON response containing the intersecting features,
+            or None if an error occurs.
+  """
+  # The ArcGIS REST API endpoint for querying the HUC12 layer.
+  # Layer '6' corresponds to HUC12 watersheds.
+  url = "https://services.arcgis.com/EXyRv0dqed53BmG2/ArcGIS/rest/services/New_Jersey_DMRs_2022/FeatureServer/1/query"
+
+  list_of_ids=""
+  for i in wids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+
+  # Define the parameters for the GET request according to the ArcGIS REST API documentation.
+  params = {
+      'where': f'FAC_DERIVED_WBD in ({list_of_ids})',
+      'outFields': '*',  # Return all available attribute fields
+      'returnGeometry': 'true', # Include the geometry of the features in the response
+      'f': 'geojson' # Specify the response format as JSON
+  }
+
+  try:
+    # Send the GET request to the server
+    response = requests.get(url, params=params)
+    # Raise an HTTPError for bad responses (4xx or 5xx)
+    response.raise_for_status()
+    
+    # Parse the JSON response and return it
+    return response.json()
+
+  except requests.exceptions.RequestException as e:
+    print(f"An error occurred while making the request: {e}")
+    return None
+  except json.JSONDecodeError:
+    print("Failed to decode the JSON response from the server.")
+    return None
+  
+@st.cache_data
 def find_intersecting_huc12(bounds):
   """
   Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
@@ -79,7 +176,7 @@ def find_intersecting_huc12(bounds):
       'spatialRel': 'esriSpatialRelIntersects', # The spatial relationship to find
       'outFields': '*',  # Return all available attribute fields
       'returnGeometry': 'true', # Include the geometry of the features in the response
-      'f': 'json' # Specify the response format as JSON
+      'f': 'geojson' # Specify the response format as JSON
   }
 
   try:
@@ -112,6 +209,17 @@ def get_data(wids):
     data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
   return data
 
+@st.cache_data
+def lookup(wids):
+  list_of_ids=""
+  for i in wids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+  query = f'select * from lookup where FAC_DERIVED_WBD in ({list_of_ids})'
+  with sqlite3.connect(DB_PATH) as conn:
+    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return data
+
 # Load watershed data based on intersection
 with st.spinner(text="Loading data..."):
   # Get bounds of shape
@@ -129,31 +237,11 @@ with st.spinner(text="Loading data..."):
   x1,y1,x2,y2 = location.geometry.total_bounds
   bounds = [[y1, x1], [y2, x2]]
   # Get watershed boundary
-  sql = """
-  SELECT * FROM "wbdhu12" WHERE ST_INTERSECTS(ST_GeomFromText('POLYGON(({} {}, {} {}, {} {}, {} {}, {} {}))', 4269), "wbdhu12"."wkb_geometry");
-  """.format(b[0], b[1], 
-    b[0], b[3], 
-    b[2], b[3], 
-    b[2], b[1], 
-    b[0], b[1])
   watersheds_features = find_intersecting_huc12(bounds)
-  spatial_ref = watersheds_features["spatialReference"]["wkid"]
-  #st.write(watersheds_features)
-  #st.write(watersheds_features)
-  from shapely import Polygon#.geometry import shape
-  valid_features = [f for f in watersheds_features['features'] if f.get('geometry') and "rings" in f["geometry"]]
-  #st.write(valid_features)
-  geometries = []
-  attributes = []
-  for feature in valid_features:
-    try:
-      geometries.append(Polygon(feature['geometry']["rings"][0]))
-      attributes.append(feature['attributes'])
-    except AttributeError:
-      pass 
+  
   
   # Create the GeoDataFrame from the parsed attributes and geometries.
-  watersheds = geopandas.GeoDataFrame(data=attributes, geometry=geometries, crs=spatial_ref)
+  watersheds = geopandas.GeoDataFrame.from_features(watersheds_features, crs=4326)
   watersheds.to_crs(4326, inplace=True) # Project data
 
   within = watersheds.sindex.query(location.geometry, predicate="intersects")
@@ -179,14 +267,22 @@ with st.spinner(text="Loading data..."):
 
   # Get discharge data based on watershed ids
   #sql = 'select * from "DMR_FY2022_MVIEW" where "FAC_DERIVED_WBD" in ({})'.format(ids) 
-  dmr = get_data(wids)
-  #st.dataframe(dmr)
-  top_pollutants = dmr.groupby(['PARAMETER_DESC'])[["FAC_NAME"]].nunique()
-  top_pollutants = top_pollutants.rename(columns={"FAC_NAME": "# of facilities"})
-  top_pollutants = top_pollutants.sort_values(by="# of facilities", ascending=False)
+  url = "https://services.arcgis.com/EXyRv0dqed53BmG2/ArcGIS/rest/services/New_Jersey_DMRs_2022/FeatureServer/"
 
-  top_pollutors = dmr.groupby(['PARAMETER_DESC', 'FAC_NAME', 'STANDARD_UNIT_DESC'])[["DMR_VALUE_STANDARD_UNITS"]].sum()
-  top_pollutors = top_pollutors.rename(columns={"STANDARD_UNIT_DESC": "units", "DMR_VALUE_STANDARD_UNITS": "values"})
+  list_of_ids=""
+  for i in wids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+
+  # Get parameters to select from 
+  #where = f'FAC_DERIVED_WBD in ({list_of_ids})'
+  #chems = query_paginated_features(service_url=url, layer_id=1, out_fields='PARAMETER_DESC', where_clause=where, page_size=2000, distinct=True)
+  
+  widslist = [str(w) for w in wids]
+  chems = lookup(wids)
+  #st.dataframe(chems)
+
+ 
 
 # Streamlit section
 # Map
@@ -196,6 +292,33 @@ def main():
   c2 = st.container()
   c3 = st.container()
   
+
+
+  with c2:
+    st.markdown("""
+      ### Analyze by pollutant
+      Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged.
+                """)
+    pollutant = st.selectbox(
+      "Select a pollutant...",
+      list(chems["PARAMETER_DESC"].unique()),
+      label_visibility = "hidden"
+    )
+
+    # Get DMRs
+    where = f'FAC_DERIVED_WBD in ({list_of_ids}) and PARAMETER_DESC = \'{pollutant}\''
+    dmr = query_paginated_features(service_url=url, layer_id=1, where_clause=where, page_size=2000, distinct=False)
+    dmr = [d["attributes"] for d in dmr]
+    dmr = pd.DataFrame(dmr)
+    #st.dataframe(dmr)
+    
+    top_pollutants = chems.groupby(['PARAMETER_DESC'])[["EXTERNAL_PERMIT_NMBR"]].sum()
+    top_pollutants = top_pollutants.rename(columns={"EXTERNAL_PERMIT_NMBR": "# of facilities"})
+    top_pollutants = top_pollutants.sort_values(by="# of facilities", ascending=False)
+
+    top_pollutors = dmr.groupby(['PARAMETER_DESC', 'FAC_NAME', 'STANDARD_UNIT_DESC'])[["DMR_VALUE_STANDARD_UNITS"]].sum()
+    top_pollutors = top_pollutors.rename(columns={"STANDARD_UNIT_DESC": "units", "DMR_VALUE_STANDARD_UNITS": "values"})
+
   with c1:
     st.markdown("""
       ### Most Frequently Reported Pollutants in Watershed(s) in Selected Area
@@ -207,17 +330,6 @@ def main():
         y = alt.Y('Pollutant', axis=alt.Axis(labelLimit = 500), title=None).sort('-x')
       ),
      use_container_width=True
-    )
-
-  with c2:
-    st.markdown("""
-      ### Analyze by pollutant
-      Use the dropdown menu to select different pollutants and see how *much* of that pollutant reporting facilities said they discharged.
-                """)
-    pollutant = st.selectbox(
-      "Select a pollutant...",
-      list(top_pollutants.index),
-      label_visibility = "hidden"
     )
 
   with c3:
@@ -250,6 +362,7 @@ def main():
         filtered_data = context.join(filtered_data).reset_index().drop_duplicates(subset=["EXTERNAL_PERMIT_NMBR"])
         filtered_data['quantile'] = pd.qcut(filtered_data["COUNT"], 4, labels=False, duplicates="drop")
         scale = {0: 8,1:12, 2: 16, 3: 24} # First quartile = size 8 circles, etc.
+        #st.dataframe(filtered_data)
         markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
           popup =folium.Popup(mark["FAC_NAME"] + "<br><b>Reports of "+pollutant+" in 2022: </b>"+str(mark["COUNT"])+"<br><b>Industry codes (NAICS, SICS): </b>"+str(mark["FAC_SIC_CODES"])+"/"+str(mark["FAC_NAICS_CODES"])),
           radius = scale[mark["quantile"]], fill_color = "orange", weight=1
@@ -279,7 +392,6 @@ def main():
                   
       :thinking: What are the industry codes in the popup (NAICS, SIC)? These numbers can be looked up to get a sense of what that business does. [More information.](https://www.dnb.com/resources/sic-naics-industry-codes.html)
     """)
-
     units = list(top_pollutors.loc[pollutant].reset_index()['STANDARD_UNIT_DESC'].unique()) # the different units this pollutant is measured in
     st.altair_chart(
       alt.Chart(top_pollutors.loc[pollutant].reset_index(), title = 'Amount of '+pollutant+' reported released in 2022 by facilities in selected watersheds').mark_bar().encode(

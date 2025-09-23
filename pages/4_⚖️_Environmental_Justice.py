@@ -83,7 +83,7 @@ def find_intersecting_bgs(bounds):
       'spatialRel': 'esriSpatialRelIntersects', # The spatial relationship to find
       'outFields': '*',  # Return all available attribute fields
       'returnGeometry': 'true', # Include the geometry of the features in the response
-      'f': 'json' # Specify the response format as JSON
+      'f': 'geojson' # Specify the response format as JSON
   }
 
   try:
@@ -201,25 +201,9 @@ with st.spinner(text="Loading data..."):
   bounds = [[y1, x1], [y2, x2]]
 
   census_data = find_intersecting_bgs(bounds)
-  #st.write(census_data)
-  #census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
-  spatial_ref = census_data["spatialReference"]["latestWkid"]
-  #st.write(watersheds_features)
-  #st.write(watersheds_features)
-  from shapely import Polygon#.geometry import shape
-  valid_features = [f for f in census_data['features'] if f.get('geometry') and "rings" in f["geometry"]]
-  #st.write(valid_features)
-  geometries = []
-  attributes = []
-  for feature in valid_features:
-    try:
-      geometries.append(Polygon(feature['geometry']["rings"][0]))
-      attributes.append(feature['attributes'])
-    except AttributeError:
-      pass 
-  
+ 
   # Create the GeoDataFrame from the parsed attributes and geometries.
-  census_data = geopandas.GeoDataFrame(data=attributes, geometry=geometries, crs=spatial_ref)
+  census_data = geopandas.GeoDataFrame.from_features(census_data, crs=4326)
   census_data.to_crs(4326, inplace=True) # Project data
   #census_data = geopandas.clip(census_data, location.geometry)
   within = census_data.sindex.query(location.geometry, predicate="intersects")
