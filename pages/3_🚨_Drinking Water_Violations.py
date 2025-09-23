@@ -23,12 +23,23 @@ st.markdown(""" # Violations of the Safe Drinking Water Act (SDWA)
   Details about any violations of SDWA in the selected area that may have been recorded since 2001.
 """)
 
+import sqlite3
+from pathlib import Path
+DB_PATH = Path('nj_sdwa.db')
 @st.cache_data
-def get_data():
+def get_data(ids):
   try:
     #url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
     #data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv("data/NJ_SDWA_VIOLATIONS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    #data = pd.read_csv("data/NJ_SDWA_VIOLATIONS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    list_of_ids = ""
+    for i in ids:
+      list_of_ids += f"'{i}',"
+    list_of_ids = list_of_ids[:-1] # remove trailing comma
+    data = None
+    query = f'select * from NJ_SDWA_VIOLATIONS where PWSID in ({list_of_ids})'
+    with sqlite3.connect(DB_PATH) as conn:
+      data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
     return data
   except:
     print("Sorry, can't get data")
@@ -81,7 +92,17 @@ with st.spinner(text="Loading data..."):
 # Map
 def main():
   if "violations_data" not in st.session_state:
-    st.session_state["violations_data"] = get_data()#None
+    # Set bounds
+    bounds = geopandas.GeoDataFrame.from_features(box)
+    bounds.set_crs(4326, inplace=True)
+    x1,y1,x2,y2 = bounds.geometry.total_bounds
+    # Get PWS
+    these_pws = geopandas.clip(sdwa, bounds.geometry)
+    these_pws = list(these_pws["PWSID"].unique())
+    # Get PSA ids
+    psa_ids = list(st.session_state["these_psa"].index.unique())
+    these_pws = these_pws + psa_ids
+    st.session_state["violations_data"] = get_data(these_pws)#None
   if "violations_markers" not in st.session_state:
     st.session_state["violations_markers"] = []
   if "violations_colorscale" not in st.session_state:
@@ -106,9 +127,7 @@ def main():
     psa_ids = list(st.session_state["these_psa"].index.unique())
     these_pws = these_pws + psa_ids
     # Get violations data for PWS and PSA/PWS
-    violations_data = get_data_from_ids(these_pws)
-    st.write("VIOLATIONS")
-    st.dataframe(violations_data)
+    violations_data = get_data(these_pws)
     # Make sure that facilities with no violations still get markers
     if violations_data is not None:
       ## Facilities with violations

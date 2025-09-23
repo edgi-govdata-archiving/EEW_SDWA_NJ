@@ -73,7 +73,7 @@ def add_spatial_data(url, name, projection=4326):
 # EJ parameters we are working with
 longest_definition_length = 315
 ejdefs = {
-  "MINORPCT":   "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.\n",
+  "PEOPCOLORPCT":   "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.\n",
   "LOWINCPCT":  "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.\n" + (longest_definition_length-136)*"&nbsp;",
   "LESSHSPCT":  "Percent of people age 25 or older in a block group whose education is short of a high school diploma.\n" + (longest_definition_length-101)*"&nbsp;",
   "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.\n" + (longest_definition_length-270)*"&nbsp;",
@@ -82,8 +82,8 @@ ejdefs = {
   "UNEMPPCT":   "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).\n" + (longest_definition_length-232)*"&nbsp;",
   "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure\n" + (longest_definition_length-86)*"&nbsp;",
   "DSLPM":      "Diesel particulate matter level in air, µg/m3\n" + (longest_definition_length-45)*"&nbsp;",
-  "CANCER":     "Lifetime cancer risk from inhalation of air toxics\n" + (longest_definition_length-50)*"&nbsp;",
-  "RESP":       "Ratio of exposure concentration to health-based reference concentration\n" + (longest_definition_length-71)*"&nbsp;",
+  #"CANCER":     "Lifetime cancer risk from inhalation of air toxics\n" + (longest_definition_length-50)*"&nbsp;",
+  #"RESP":       "Ratio of exposure concentration to health-based reference concentration\n" + (longest_definition_length-71)*"&nbsp;",
   "PTRAF":      "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)\n" + (longest_definition_length-124)*"&nbsp;",
   "PWDIS":      "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)\n" + (longest_definition_length-10)*"&nbsp;",
   "PNPL":       "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-146)*"&nbsp;",
@@ -97,14 +97,31 @@ ej_parameters = list(ejdefs.keys()) # the parameters themselves
 socecon = ej_parameters[0:8] # socioeconomic measures
 env = ej_parameters[8:len(ej_parameters)] # environmental/health measures
 
+
+import sqlite3
+from pathlib import Path
+DB_PATH = Path('nj_sdwa.db')
+@st.cache_data
+def get_data(ids):
+  list_of_ids=""
+  for i in ids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+  query = f'select * from EJSCREEN_2024_StateRankings_NJ where ID in ({list_of_ids})'
+  with sqlite3.connect(DB_PATH) as conn:
+    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return data
+
 @st.cache_data
 def get_metadata():
-  columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
-  return columns
+  query = f'select * from "2024_EJSCREEEN_columns-explained"'
+  with sqlite3.connect(DB_PATH) as conn:
+    metadata = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return metadata
 columns = get_metadata()
-columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
+columns = columns.loc[columns["Column Names"].isin(ej_parameters)][["Column Names", "Description"]]
 columns.set_index("Description", inplace = True)
-ej_dict = columns.to_dict()['GDB Fieldname']
+ej_dict = columns.to_dict()['Column Names']
 ej_options = {k:v for k,v in ej_dict.items() if v in socecon} # socioeconomic measures
 ej_options = ej_options.keys() # list of EJScreen variables that will be selected (% low income: LOWINCPCT, e.g.)
 env_options = {k:v for k,v in ej_dict.items() if v in env} # socioeconomic measures
@@ -114,40 +131,48 @@ ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" va
 # Load and join census data
 with st.spinner(text="Loading data..."):
   census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2024/BG/tl_2024_34_bg.zip", name="census") #, projection=4269
-  ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
-  ej_data["ID"] = ej_data["ID"].astype(str) # set the Census id as a string
   census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
+  
+  # Use location to narrow query of EJ data
+  ## Convert box
+  with st.spinner(text="Loading data..."):
+    try:
+      location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
+    except:
+      st.error("### Error: Please start on the 'Welcome' page.")
+      st.stop()
+
+  ## Filter to area
+  if st.session_state["these_psa"].empty: # If there are no PSA to work with
+    bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+  else: # If there are PSA to work with
+    within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
+    bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
+
+  #st.write(bgs)
+  ej_data = get_data(list(bgs.reset_index()["GEOID"].unique()))#pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
+  ej_data["ID"] = ej_data["ID"].astype(str) # set the Census id as a string
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
-  census_data = census_data.join(ej_data) # join based on this shared id
-  census_data = census_data[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
-  census_data[[i for i in socecon]] = round(census_data[[i for i in socecon]] * 100, 2) # Convert percentage decimals (0-1) to proper percentages...
-  census_data[[i for i in socecon]] = census_data[[i for i in socecon]].astype(str) + "%" # ...and then stringify to add % symbol
-  census_data[[i for i in env]] = round(census_data[[i for i in env]], 2) # Round everything else to 2 decimal digits
-  census_data[[i for i in env]] = census_data[[i for i in env]].astype(str) # ...and then stringify
-  census_data.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
+
+  # Join census and EJ data
+  bgs = bgs.join(ej_data) # join based on this shared id
+  bgs = bgs[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
+  bgs[[i for i in socecon]] = round(bgs[[i for i in socecon]] * 100, 2) # Convert percentage decimals (0-1) to proper percentages...
+  bgs[[i for i in socecon]] = bgs[[i for i in socecon]].astype(str) + "%" # ...and then stringify to add % symbol
+  bgs[[i for i in env]] = round(bgs[[i for i in env]], 2) # Round everything else to 2 decimal digits
+  bgs[[i for i in env]] = bgs[[i for i in env]].astype(str) # ...and then stringify
+  bgs.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
   ej_dict = {v: k for k, v in ej_dict.items()} # re-reverse the key/value dictionary mapping for later use
 
-# Convert box
-with st.spinner(text="Loading data..."):
-  try:
-    location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
-  except:
-    st.error("### Error: Please start on the 'Welcome' page.")
-    st.stop()
-
-# Filter to area
-if st.session_state["these_psa"].empty: # If there are no PSA to work with
-  bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
-else: # If there are PSA to work with
-  within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
-  bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
-
-bg_data = bgs
-# Set bounds to drawn area
-x1,y1,x2,y2 = location.geometry.total_bounds
-bounds = [[y1, x1], [y2, x2]]
-# bgs back to features
-bgs = json.loads(bgs.to_json())
+  # Prepare for mapping
+  bg_data = bgs
+  
+  # Set bounds to drawn area
+  x1,y1,x2,y2 = location.geometry.total_bounds
+  bounds = [[y1, x1], [y2, x2]]
+  # bgs back to features
+  bgs = json.loads(bgs.to_json())
+ 
 
 # Streamlit section
 # Map

@@ -44,6 +44,20 @@ st.markdown("""
 
   """)
 
+import sqlite3
+from pathlib import Path
+DB_PATH = Path('nj_sdwa.db')
+@st.cache_data
+def get_data(sas_ids):
+  list_of_ids=""
+  for i in sas_ids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+  query = f'select * from nj_leadlines_2023 where PWSID in ({list_of_ids})'
+  with sqlite3.connect(DB_PATH) as conn:
+    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return data
+
 # Load and join lead/service area data
 with st.spinner(text="Loading data..."):
   # Convert st.session_state["last_active_drawing"]
@@ -56,8 +70,9 @@ with st.spinner(text="Loading data..."):
   # Filter to area
   sas = service_areas[service_areas.geometry.intersects(location.geometry[0])] # Service areas in the place
   # Get lead data
-  lead = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
-    dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
+  sas_ids = list(sas.reset_index()["PWID"].unique())
+  lead = get_data(sas_ids)#pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
+    #dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
   lead.rename(columns={"Measurement (service lines)":"Number of lead service lines in area", "size": "System Size"}, inplace=True)
   lead = sas.join(lead.set_index("PWSID"))
   lead.set_index("SYS_NAME", inplace=True)

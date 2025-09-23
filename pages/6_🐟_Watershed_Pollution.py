@@ -38,16 +38,78 @@ st.caption("""
             
   :arrow_right: This data only includes the pollutants that are reported by a facility discharging into the water. Pollutants can also end up in the water from the air, from polluters operating below permit-requiring levels, and lots of other ways (can you think of more?) One way to learn more about what is in the water is with EPA's [How's My Waterway tool](https://mywaterway.epa.gov/), which shows the status of local waterways based on monitoring.
 """)
-            
-@st.cache_data
-def get_data(query):
+
+import requests
+import json
+
+def find_intersecting_huc12(bounds):
+  """
+  Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
+
+  The script targets the Watershed Boundary Dataset (WBD) map service.
+
+  Args:
+      bounds (list): A list of two points [[y1, x1], [y2, x2]] defining the bounding box,
+                     where 'y' is latitude and 'x' is longitude.
+
+  Returns:
+      dict: A dictionary parsed from the JSON response containing the intersecting features,
+            or None if an error occurs.
+  """
+  # The ArcGIS REST API endpoint for querying the HUC12 layer.
+  # Layer '6' corresponds to HUC12 watersheds.
+  url = "https://hydro.nationalmap.gov/arcgis/rest/services/wbd/MapServer/6/query"
+
+  # Extract coordinates and determine the min/max values for the envelope.
+  # The API expects the format xmin, ymin, xmax, ymax.
+  y1, x1 = bounds[0]
+  y2, x2 = bounds[1]
+
+  xmin = min(x1, x2)
+  ymin = min(y1, y2)
+  xmax = max(x1, x2)
+  ymax = max(y1, y2)
+
+  # Define the parameters for the GET request according to the ArcGIS REST API documentation.
+  params = {
+      'geometry': f'{xmin},{ymin},{xmax},{ymax}',
+      'geometryType': 'esriGeometryEnvelope',
+      'inSR': '4326',  # Input spatial reference: WGS 84 (standard lat/lon)
+      'spatialRel': 'esriSpatialRelIntersects', # The spatial relationship to find
+      'outFields': '*',  # Return all available attribute fields
+      'returnGeometry': 'true', # Include the geometry of the features in the response
+      'f': 'json' # Specify the response format as JSON
+  }
+
   try:
-    url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64", "huc12": str})
-    return data
-  except:
-    print("Sorry, can't get data")
+    # Send the GET request to the server
+    response = requests.get(url, params=params)
+    # Raise an HTTPError for bad responses (4xx or 5xx)
+    response.raise_for_status()
+    
+    # Parse the JSON response and return it
+    return response.json()
+
+  except requests.exceptions.RequestException as e:
+    print(f"An error occurred while making the request: {e}")
+    return None
+  except json.JSONDecodeError:
+    print("Failed to decode the JSON response from the server.")
+    return None
+            
+import sqlite3
+from pathlib import Path
+DB_PATH = Path('nj_sdwa.db')
+@st.cache_data
+def get_data(wids):
+  list_of_ids=""
+  for i in wids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+  query = f'select * from NJ_DMR_2022 where FAC_DERIVED_WBD in ({list_of_ids})'
+  with sqlite3.connect(DB_PATH) as conn:
+    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return data
 
 # Load watershed data based on intersection
 with st.spinner(text="Loading data..."):
@@ -73,39 +135,48 @@ with st.spinner(text="Loading data..."):
     b[2], b[3], 
     b[2], b[1], 
     b[0], b[1])
-  watersheds = get_data(sql)
-  for i,w in watersheds.iterrows():
-    if len(str(w["huc12"]))<12:
-      w["huc12"] = "0"+str(w["huc12"])
-  watersheds['geometry'] = geopandas.GeoSeries.from_wkb(watersheds['wkb_geometry'])
-  watersheds.drop("wkb_geometry", axis=1, inplace=True)
-  watersheds = geopandas.GeoDataFrame(watersheds, crs=4269)
+  watersheds_features = find_intersecting_huc12(bounds)
+  spatial_ref = watersheds_features["spatialReference"]["wkid"]
+  #st.write(watersheds_features)
+  #st.write(watersheds_features)
+  from shapely import Polygon#.geometry import shape
+  valid_features = [f for f in watersheds_features['features'] if f.get('geometry') and "rings" in f["geometry"]]
+  #st.write(valid_features)
+  geometries = []
+  attributes = []
+  for feature in valid_features:
+    try:
+      geometries.append(Polygon(feature['geometry']["rings"][0]))
+      attributes.append(feature['attributes'])
+    except AttributeError:
+      pass 
+  
+  # Create the GeoDataFrame from the parsed attributes and geometries.
+  watersheds = geopandas.GeoDataFrame(data=attributes, geometry=geometries, crs=spatial_ref)
+  watersheds.to_crs(4326, inplace=True) # Project data
+  # Create GeoDataFrame
+  # Convert the Esri JSON features to a format suitable for GeoPandas
+  # This involves creating a Shapely geometry object from the geometry dictionary
+  #watersheds = geopandas.GeoDataFrame.from_features(watersheds, crs="EPSG:4326")
+  #st.write("WATERSHEDS")
+  #st.write(watersheds)
+  #for i,w in watersheds.iterrows():
+  #  if len(str(w["huc12"]))<12:
+  #    w["huc12"] = "0"+str(w["huc12"])
+  #watersheds['geometry'] = geopandas.GeoSeries.from_wkb(watersheds['wkb_geometry'])
+  #watersheds.drop("wkb_geometry", axis=1, inplace=True)
+  #watersheds = geopandas.GeoDataFrame(watersheds, crs=4269)
   # Save data for later
   watershed_data = watersheds
   # Get watershed ids
-  w = list(watersheds["huc12"].unique())
-  ids  = ""
-  for i in w:
-    ids += "'"+str(i)+"',"
-  ids = ids[:-1] 
+  wids = list(watersheds["huc12"].unique())
   # Convert to features
   watersheds = json.loads(watersheds.to_json())
 
-  # Get ECHO facilities within watersheds
-  sql = """
-  SELECT "ECHO_EXPORTER".* FROM "ECHO_EXPORTER","wbdhu12" WHERE 
-  ST_WITHIN("ECHO_EXPORTER"."wkb_geometry", "wbdhu12"."wkb_geometry") AND "wbdhu12"."huc12" in ({})  AND "ECHO_EXPORTER"."NPDES_FLAG" = \'Y\';
-  """.format(ids)
-  echo = get_data(sql)
-  echo['geometry'] = geopandas.GeoSeries.from_wkb(echo['wkb_geometry'])
-  echo.drop("wkb_geometry", axis=1, inplace=True)
-  echo = geopandas.GeoDataFrame(echo, crs=4269)
-  echo.set_index("REGISTRY_ID", inplace=True)
-
   # Get discharge data based on watershed ids
-  sql = 'select * from "DMR_FY2022_MVIEW" where "FAC_DERIVED_WBD" in ({})'.format(ids) 
-  dmr = get_data(sql)
-
+  #sql = 'select * from "DMR_FY2022_MVIEW" where "FAC_DERIVED_WBD" in ({})'.format(ids) 
+  dmr = get_data(wids)
+  #st.dataframe(dmr)
   top_pollutants = dmr.groupby(['PARAMETER_DESC'])[["FAC_NAME"]].nunique()
   top_pollutants = top_pollutants.rename(columns={"FAC_NAME": "# of facilities"})
   top_pollutants = top_pollutants.sort_values(by="# of facilities", ascending=False)
@@ -154,6 +225,7 @@ def main():
         m = folium.Map(tiles = "cartodb positron")
         
         #Set watershed
+        #st.write(watersheds)
         w = folium.GeoJson(
           watersheds,
           style_function = lambda sa: {"fillColor": "#C1E2DB", "fillOpacity": .75, "weight": 1, "color": "white"}

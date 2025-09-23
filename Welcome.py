@@ -45,13 +45,23 @@ with c2:
   * What kinds of pollutants are permitted to be released in the watershed?
   """)
 
+import sqlite3
+from pathlib import Path
+
+# Define the path for the database
+DB_PATH = Path('nj_sdwa.db')
+TABLE_NAME = 'NJ_PWS'
 @st.cache_data
 def get_data():
   try:
     # Get data
     #url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
     #data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv("data/NJ_PWS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = None
+    with sqlite3.connect(DB_PATH) as conn:
+      data = pd.read_sql_query('select * from NJ_PWS', conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    #return df
+    #data = pd.read_csv("data/NJ_PWS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
     # Map all SDWA PWS
     sdwa = geopandas.GeoDataFrame(data, crs = 4269, geometry = geopandas.points_from_xy(data["FAC_LONG"], data["FAC_LAT"]))
     return sdwa
@@ -89,7 +99,7 @@ def add_spatial_data(url, name, projection=4326):
 with c3:
   with st.spinner(text="Loading data..."):
     # Load PWS data
-    #sql = 'select * from "SDWA_PUBLIC_WATER_SYSTEMS_MVIEW" where "STATE" = \'NJ\'' # About 3500 = 40000 records for multiple FYs #'
+    #sql = 'select * from SDWA_PUBLIC_WATER_SYSTEMS_MVIEW' # About 3500 = 40000 records for multiple FYs #'
     sdwa = get_data()
     
     # String manipulations to make output more readable
