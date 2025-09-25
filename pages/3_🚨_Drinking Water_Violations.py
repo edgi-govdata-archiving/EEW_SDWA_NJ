@@ -23,27 +23,32 @@ st.markdown(""" # Violations of the Safe Drinking Water Act (SDWA)
   Details about any violations of SDWA in the selected area that may have been recorded since 2001.
 """)
 
+import sqlite3
+from pathlib import Path
+DB_PATH = Path('nj_sdwa.db')
 @st.cache_data
-def get_data(query):
+def get_data(ids):
   try:
-    url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    #url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
+    #data_location = url + urllib.parse.quote_plus(query) + '&pg'
+    #data = pd.read_csv("data/NJ_SDWA_VIOLATIONS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    list_of_ids = ""
+    for i in ids:
+      list_of_ids += f"'{i}',"
+    list_of_ids = list_of_ids[:-1] # remove trailing comma
+    data = None
+    query = f'select * from NJ_SDWA_VIOLATIONS where PWSID in ({list_of_ids})'
+    with sqlite3.connect(DB_PATH) as conn:
+      data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
     return data
   except:
     print("Sorry, can't get data")
 
 # Data Processing
-def get_data_from_ids(table, key, list_of_ids):
-  print(list_of_ids)
-  ids  = ""
-  for i in list_of_ids:
-    ids += "'"+i +"',"
-  ids = ids[:-1]
-  # get data
-  sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
-  data = get_data(sql)
-  return data
+def get_data_from_ids(list_of_ids):
+  this_data = st.session_state["violations_data"]
+  this_data = this_data[this_data["PWSID"].isin(list_of_ids)]
+  return this_data
 
 # Make the maps' markers
 def marker_maker(data, facs_without_violations):
@@ -51,7 +56,7 @@ def marker_maker(data, facs_without_violations):
   data: SDWA violations dataframe
   """
   # Process data for mapping - drop duplicates (multiple violations) to just get one marker per facility. Color marker by violation count.
-  context = data[["PWSID", "FAC_NAME", "PWS_TYPE_CODE", "PWS_SIZE", "SOURCE_WATER", "FAC_LAT", "FAC_LONG"]]
+  context = data[["PWSID", "FAC_NAME", "PWS_TYPE_CODE", "SYSTEM_SIZE", "PRIMARY_SOURCE_CODE", "FAC_LAT", "FAC_LONG"]]
   context.set_index("PWSID", inplace = True)
   data = data.groupby(by=["PWSID"])[["PWSID"]].count().rename(columns={"PWSID": "VIOLATIONS_COUNT"}) # Group data
   data = context.join(data).reset_index().drop_duplicates(subset=["PWSID"])
@@ -62,8 +67,8 @@ def marker_maker(data, facs_without_violations):
   # Map PWS
   markers = [folium.CircleMarker(location=[mark["FAC_LAT"], mark["FAC_LONG"]], 
     popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Violations since 2001:</b> '+
-      str(mark["VIOLATIONS_COUNT"])+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+
-      mark["PWS_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]
+      str(mark["VIOLATIONS_COUNT"])+'<br><b>Source:</b> '+mark["PRIMARY_SOURCE_CODE"]+'<br><b>Size:</b> '+
+      mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]
     ),
     radius=12, 
     fill_color=colorscale(mark["VIOLATIONS_COUNT"]),
@@ -76,7 +81,7 @@ def marker_maker(data, facs_without_violations):
 with st.spinner(text="Loading data..."):
   try:
     sdwa = st.session_state["sdwa"]
-    sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+    #sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
     psa = st.session_state["these_psa"]
     box = st.session_state["box"]
   except:
@@ -87,7 +92,17 @@ with st.spinner(text="Loading data..."):
 # Map
 def main():
   if "violations_data" not in st.session_state:
-    st.session_state["violations_data"] = None
+    # Set bounds
+    bounds = geopandas.GeoDataFrame.from_features(box)
+    bounds.set_crs(4326, inplace=True)
+    x1,y1,x2,y2 = bounds.geometry.total_bounds
+    # Get PWS
+    these_pws = geopandas.clip(sdwa, bounds.geometry)
+    these_pws = list(these_pws["PWSID"].unique())
+    # Get PSA ids
+    psa_ids = list(st.session_state["these_psa"].index.unique())
+    these_pws = these_pws + psa_ids
+    st.session_state["violations_data"] = get_data(these_pws)#None
   if "violations_markers" not in st.session_state:
     st.session_state["violations_markers"] = []
   if "violations_colorscale" not in st.session_state:
@@ -112,7 +127,7 @@ def main():
     psa_ids = list(st.session_state["these_psa"].index.unique())
     these_pws = these_pws + psa_ids
     # Get violations data for PWS and PSA/PWS
-    violations_data = get_data_from_ids("SDWA_VIOLATIONS_MVIEW", "PWSID", these_pws)
+    violations_data = get_data(these_pws)
     # Make sure that facilities with no violations still get markers
     if violations_data is not None:
       ## Facilities with violations
@@ -123,7 +138,7 @@ def main():
       facs_without_violations = sdwa[sdwa["PWSID"].isin(facs_without_violations)]
       ## Fill in missing information from violations table
       facs_without_violations["PWS_SIZE"] = "N/A"
-      facs_without_violations["HEALTH_BASED"] = "N" # Really should be N/A but then chart won't show correctly
+      facs_without_violations["IS_HEALTH_BASED_IND"] = "N" # Really should be N/A but then chart won't show correctly
       #facs_without_violations["PWS_TYPE_CODE"] = "N/A"
       #facs_without_violations["PWS_NAME"] = "N/A"
       violations_data = pd.concat([violations_data, facs_without_violations])
@@ -182,7 +197,7 @@ def main():
   with c2:
     # Manipulate data
     try:
-      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "HEALTH_BASED"])[["FAC_NAME"]].count()
+      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "IS_HEALTH_BASED_IND"])[["FAC_NAME"]].count()
       counts.rename(columns={"FAC_NAME": "VIOLATIONS_COUNT"}, inplace=True)
       counts.loc[counts.index.isin(list(facs_without_violations["FAC_NAME"].unique()),level='FAC_NAME'), "VIOLATIONS_COUNT"] = 0 # Reset facilities with no recorded violations to 0 count
       counts = counts.sort_values(by="FAC_NAME", ascending=False)
@@ -206,7 +221,7 @@ def main():
       alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
         x = alt.X("VIOLATIONS_COUNT", title = "Number of violations"),
         y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x'), # Sort horizontal bar chart
-        color = 'HEALTH_BASED'
+        color = 'IS_HEALTH_BASED_IND'
       ),
     use_container_width=True
     )

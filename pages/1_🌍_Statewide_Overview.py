@@ -47,7 +47,9 @@ def main():
 
     #@st.cache_data()
     def make_map(shape):
-      m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, zoom_control=False, scrollWheelZoom=False, dragging=False, tiles="cartodb positron")
+      m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, 
+                     zoom_control=True, scrollWheelZoom=False, 
+                     dragging=True, tiles="cartodb positron")
 
       if shape == "psas": 
         # Add polygons representing PSAs
@@ -130,7 +132,7 @@ def main():
     """)
 
     def chart_category(selected_category):
-      data = st.session_state["sdwa"].loc[st.session_state["sdwa"]["FISCAL_YEAR"] == 2021] # This ensures we're only summarizing currently operating facilities and not duplicating them
+      data = st.session_state["sdwa"]#.loc[st.session_state["sdwa"]["FISCAL_YEAR"] == 2021] # This ensures we're only summarizing currently operating facilities and not duplicating them
       counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)
@@ -162,7 +164,7 @@ def main():
       """)
 
     with tab2:
-      selected_category = "SOURCE_WATER"
+      selected_category = "PRIMARY_SOURCE_CODE"
       chart_category(selected_category)
       st.markdown("""
         #### Public Water System Source Types

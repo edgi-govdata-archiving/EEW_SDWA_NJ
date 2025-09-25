@@ -57,7 +57,7 @@ def get_data_from_ids(table, key, list_of_ids):
 # Reload, but don't map, PWS
 try:
   sdwa = st.session_state["sdwa"]
-  sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
+  #sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   psa = st.session_state["service_areas"]
   r = st.session_state["marker_styles"]["r"]
   s = st.session_state["marker_styles"]["s"]
@@ -66,6 +66,15 @@ except:
   st.error("### Error: Please start on the 'Welcome' page.")
   st.stop()
 
+def bbox_size(shape):
+  from shapely.geometry import Polygon
+  # 1. Get the coordinates from the total_bounds
+  minx, miny, maxx, maxy = st.session_state[shape].total_bounds
+  # 2. Create a Shapely Polygon from the bounding box coordinates
+  bbox_polygon = Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy)])
+  # 3. Create a new GeoDataFrame for just the bounding box polygon
+  bbox_gdf = geopandas.GeoDataFrame([1], geometry=[bbox_polygon], crs="EPSG:4326")
+  return bbox_gdf.geometry[0].area
 
 def main():
   if "bounds" not in st.session_state: # bounds for this page
@@ -145,15 +154,17 @@ def main():
     data = data[data.geometry.is_valid] # For mapping purposes, remove invalid geometries
     data = data[~data.geometry.is_empty] # For mapping purposes, remove empty geometries
     markers = [folium.CircleMarker(location=[mark.geometry.y, mark.geometry.x], 
-      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["SOURCE_WATER"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
-      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["SOURCE_WATER"]], fill_opacity = 1) for index,mark in data.iterrows() if mark.geometry.is_valid]
+      popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["PRIMARY_SOURCE_CODE"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
+      radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["PRIMARY_SOURCE_CODE"]], fill_opacity = 1) for index,mark in data.iterrows() if mark.geometry.is_valid]
     # Save data
+    
     st.session_state["these_psa"] = psa_gdf
     st.session_state["these_markers"] = markers
     st.session_state["these_data"] = data
-    st.session_state["box"] = bounds
+    st.session_state["box"] = bounds # Set box to bounds of map frame or PSA bounds?
+    st.session_state["box"] = st.session_state["box"] if bbox_size("box") > bbox_size("these_psa") else st.session_state["these_psa"]
     st.rerun()
-
+    
   con1 = st.container()
   con2 = st.container()
 
@@ -219,7 +230,7 @@ def main():
     """)
 
     def chart_category(selected_category):
-      data = st.session_state["these_data"].loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021]
+      data = st.session_state["these_data"]#.loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021]
       counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)
@@ -251,7 +262,7 @@ def main():
       """)
 
     with tab2:
-      selected_category = "SOURCE_WATER"
+      selected_category = "PRIMARY_SOURCE_CODE"
       chart_category(selected_category)
       st.markdown("""
         #### Public Water System Source Types
@@ -287,7 +298,7 @@ def main():
     # Download Data Button
     st.download_button(
       "Download this page's data",
-      st.session_state["these_data"].loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021].to_csv(),
+      st.session_state["these_data"].to_csv(),#.loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021].to_csv(),
       "selected_public_water_systems.csv",
       "text/csv",
       key='download-csv'

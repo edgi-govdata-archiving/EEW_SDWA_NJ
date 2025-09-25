@@ -21,3 +21,4 @@ PSAs/Purveyor_Service_Areas_of_New_Jersey.xml
 *.xml
 *.shx
 .python-version
+Pipfile.lock

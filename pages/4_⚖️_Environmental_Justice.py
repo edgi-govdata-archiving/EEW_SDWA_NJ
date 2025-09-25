@@ -47,6 +47,62 @@ st.markdown("""
 """)
 
 @st.cache_data
+def find_intersecting_bgs(bounds):
+  """
+  Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
+
+  The script targets the Watershed Boundary Dataset (WBD) map service.
+
+  Args:
+      bounds (list): A list of two points [[y1, x1], [y2, x2]] defining the bounding box,
+                     where 'y' is latitude and 'x' is longitude.
+
+  Returns:
+      dict: A dictionary parsed from the JSON response containing the intersecting features,
+            or None if an error occurs.
+  """
+  # The ArcGIS REST API endpoint for querying the HUC12 layer.
+  # Layer '6' corresponds to HUC12 watersheds.
+  url = "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/arcgis/rest/services/Census_Block_Groups_2020_Hosted_3424/FeatureServer/5/query"
+
+  # Extract coordinates and determine the min/max values for the envelope.
+  # The API expects the format xmin, ymin, xmax, ymax.
+  y1, x1 = bounds[0]
+  y2, x2 = bounds[1]
+
+  xmin = min(x1, x2)
+  ymin = min(y1, y2)
+  xmax = max(x1, x2)
+  ymax = max(y1, y2)
+
+  # Define the parameters for the GET request according to the ArcGIS REST API documentation.
+  params = {
+      'geometry': f'{xmin},{ymin},{xmax},{ymax}',
+      'geometryType': 'esriGeometryEnvelope',
+      'inSR': '4326',  # Input spatial reference: WGS 84 (standard lat/lon)
+      'spatialRel': 'esriSpatialRelIntersects', # The spatial relationship to find
+      'outFields': '*',  # Return all available attribute fields
+      'returnGeometry': 'true', # Include the geometry of the features in the response
+      'f': 'geojson' # Specify the response format as JSON
+  }
+
+  try:
+    # Send the GET request to the server
+    response = requests.get(url, params=params)
+    # Raise an HTTPError for bad responses (4xx or 5xx)
+    response.raise_for_status()
+    
+    # Parse the JSON response and return it
+    return response.json()
+
+  except requests.exceptions.RequestException as e:
+    print(f"An error occurred while making the request: {e}")
+    return None
+  except json.JSONDecodeError:
+    print("Failed to decode the JSON response from the server.")
+    return None
+
+@st.cache_data
 def add_spatial_data(url, name, projection=4326):
   """
   Gets external geospatial data
@@ -73,7 +129,7 @@ def add_spatial_data(url, name, projection=4326):
 # EJ parameters we are working with
 longest_definition_length = 315
 ejdefs = {
-  "MINORPCT":   "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.\n",
+  "PEOPCOLORPCT":   "Percent of individuals in a block group who list their racial status as a race other than white alone and/or list their ethnicity as Hispanic or Latino. That is, all people other than non-Hispanic white-alone individuals. The word 'alone' in this case indicates that the person is of a single race, not multiracial.\n",
   "LOWINCPCT":  "Percent of a block group's population in households where the household income is less than or equal to twice the federal poverty level.\n" + (longest_definition_length-136)*"&nbsp;",
   "LESSHSPCT":  "Percent of people age 25 or older in a block group whose education is short of a high school diploma.\n" + (longest_definition_length-101)*"&nbsp;",
   "LINGISOPCT": "Percent of people in a block group living in limited English speaking households. A household in which all members age 14 years and over speak a non-English language and also speak English less than 'very well' (have difficulty with English) is limited English speaking.\n" + (longest_definition_length-270)*"&nbsp;",
@@ -82,8 +138,8 @@ ejdefs = {
   "UNEMPPCT":   "Percent of a block group's population that did not have a job at all during the reporting period, made at least one specific active effort to find a job during the prior 4 weeks, and were available for work (unless temporarily ill).\n" + (longest_definition_length-232)*"&nbsp;",
   "PRE1960PCT": "Percent of housing units built pre-1960, as indicator of potential lead paint exposure\n" + (longest_definition_length-86)*"&nbsp;",
   "DSLPM":      "Diesel particulate matter level in air, µg/m3\n" + (longest_definition_length-45)*"&nbsp;",
-  "CANCER":     "Lifetime cancer risk from inhalation of air toxics\n" + (longest_definition_length-50)*"&nbsp;",
-  "RESP":       "Ratio of exposure concentration to health-based reference concentration\n" + (longest_definition_length-71)*"&nbsp;",
+  #"CANCER":     "Lifetime cancer risk from inhalation of air toxics\n" + (longest_definition_length-50)*"&nbsp;",
+  #"RESP":       "Ratio of exposure concentration to health-based reference concentration\n" + (longest_definition_length-71)*"&nbsp;",
   "PTRAF":      "Count of vehicles (AADT, avg. annual daily traffic) at major roads within 500 meters, divided by distance in meters (not km)\n" + (longest_definition_length-124)*"&nbsp;",
   "PWDIS":      "RSEI modeled toxic concentrations at stream segments within 500 meters, divided by distance in kilometers (km)\n" + (longest_definition_length-10)*"&nbsp;",
   "PNPL":       "Count of proposed or listed NPL - also known as superfund - sites within 5 km (or nearest one beyond 5 km), each divided by distance in kilometers\n" + (longest_definition_length-146)*"&nbsp;",
@@ -97,14 +153,31 @@ ej_parameters = list(ejdefs.keys()) # the parameters themselves
 socecon = ej_parameters[0:8] # socioeconomic measures
 env = ej_parameters[8:len(ej_parameters)] # environmental/health measures
 
+
+import sqlite3
+from pathlib import Path
+DB_PATH = Path('nj_sdwa.db')
+@st.cache_data
+def get_data(ids):
+  list_of_ids=""
+  for i in ids:
+    list_of_ids+=f"'{i}',"
+  list_of_ids=list_of_ids[:-1]
+  query = f'select * from EJSCREEN_2024_StateRankings_NJ where ID in ({list_of_ids})'
+  with sqlite3.connect(DB_PATH) as conn:
+    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return data
+
 @st.cache_data
 def get_metadata():
-  columns = pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/2021_EJSCREEEN_columns-explained.csv")
-  return columns
+  query = f'select * from "2024_EJSCREEEN_columns-explained"'
+  with sqlite3.connect(DB_PATH) as conn:
+    metadata = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+  return metadata
 columns = get_metadata()
-columns = columns.loc[columns["GDB Fieldname"].isin(ej_parameters)][["GDB Fieldname", "Description"]]
+columns = columns.loc[columns["Column Names"].isin(ej_parameters)][["Column Names", "Description"]]
 columns.set_index("Description", inplace = True)
-ej_dict = columns.to_dict()['GDB Fieldname']
+ej_dict = columns.to_dict()['Column Names']
 ej_options = {k:v for k,v in ej_dict.items() if v in socecon} # socioeconomic measures
 ej_options = ej_options.keys() # list of EJScreen variables that will be selected (% low income: LOWINCPCT, e.g.)
 env_options = {k:v for k,v in ej_dict.items() if v in env} # socioeconomic measures
@@ -113,41 +186,60 @@ ej_dict = {v: k for k, v in ej_dict.items()} # to replace "behind the scenes" va
 
 # Load and join census data
 with st.spinner(text="Loading data..."):
-  census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2024/BG/tl_2024_34_bg.zip", name="census") #, projection=4269
-  ej_data = pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
+  # Use location to narrow query of EJ data
+  ## Convert box
+  with st.spinner(text="Loading data..."):
+    try:
+      location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
+    except:
+      st.error("### Error: Please start on the 'Welcome' page.")
+      st.stop()
+  
+  #census_data = add_spatial_data(url="https://www2.census.gov/geo/tiger/TIGER2024/BG/tl_2024_34_bg.zip", name="census") #, projection=4269
+  # Set bounds to drawn area
+  x1,y1,x2,y2 = location.geometry.total_bounds
+  bounds = [[y1, x1], [y2, x2]]
+
+  census_data = find_intersecting_bgs(bounds)
+ 
+  # Create the GeoDataFrame from the parsed attributes and geometries.
+  census_data = geopandas.GeoDataFrame.from_features(census_data, crs=4326)
+  census_data.to_crs(4326, inplace=True) # Project data
+  #census_data = geopandas.clip(census_data, location.geometry)
+  within = census_data.sindex.query(location.geometry, predicate="intersects")
+  census_data = census_data.iloc[list(set(within[1]))]
+  #st.write(census_data)
+  census_data["GEOID20"] = census_data["GEOID20"].astype(str)
+  census_data.set_index("GEOID20", inplace=True)
+  ## Filter to area
+  #if st.session_state["these_psa"].empty: # If there are no PSA to work with
+  #  bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
+  #else: # If there are PSA to work with
+  #  within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
+  #  bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
+  #st.write(census_data)
+  #st.write(bgs)
+  ej_data = get_data(list(census_data.reset_index()["GEOID20"].unique()))#pd.read_csv("https://github.com/edgi-govdata-archiving/ECHO-SDWA/raw/main/EJSCREEN_2021_StateRankings_NJ.csv") # NJ specific
   ej_data["ID"] = ej_data["ID"].astype(str) # set the Census id as a string
-  census_data.set_index("GEOID", inplace=True) # set it to the index in the Census data
   ej_data.set_index("ID", inplace=True) # set the Census id to the index in the EJScreen data
-  census_data = census_data.join(ej_data) # join based on this shared id
-  census_data = census_data[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
-  census_data[[i for i in socecon]] = round(census_data[[i for i in socecon]] * 100, 2) # Convert percentage decimals (0-1) to proper percentages...
-  census_data[[i for i in socecon]] = census_data[[i for i in socecon]].astype(str) + "%" # ...and then stringify to add % symbol
-  census_data[[i for i in env]] = round(census_data[[i for i in env]], 2) # Round everything else to 2 decimal digits
-  census_data[[i for i in env]] = census_data[[i for i in env]].astype(str) # ...and then stringify
-  census_data.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
+  #st.write(ej_data)
+  # Join census and EJ data
+  bgs = census_data.join(ej_data) # join based on this shared id
+  #st.write(bgs)
+  bgs = bgs[[i for i in ej_parameters] + ["geometry"]] # Filter out unnecessary columns
+  bgs[[i for i in socecon]] = round(bgs[[i for i in socecon]] * 100, 2) # Convert percentage decimals (0-1) to proper percentages...
+  bgs[[i for i in socecon]] = bgs[[i for i in socecon]].astype(str) + "%" # ...and then stringify to add % symbol
+  bgs[[i for i in env]] = round(bgs[[i for i in env]], 2) # Round everything else to 2 decimal digits
+  bgs[[i for i in env]] = bgs[[i for i in env]].astype(str) # ...and then stringify
+  bgs.rename(columns = ej_dict, inplace=True) # replace column names like "MINORPCT" with "% people of color"
   ej_dict = {v: k for k, v in ej_dict.items()} # re-reverse the key/value dictionary mapping for later use
 
-# Convert box
-with st.spinner(text="Loading data..."):
-  try:
-    location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
-  except:
-    st.error("### Error: Please start on the 'Welcome' page.")
-    st.stop()
+  # Prepare for mapping
+  bg_data = bgs
 
-# Filter to area
-if st.session_state["these_psa"].empty: # If there are no PSA to work with
-  bgs = census_data[census_data.geometry.intersects(location.geometry[0])] # Block groups in the area around the clicked point
-else: # If there are PSA to work with
-  within = census_data.sindex.query(st.session_state["these_psa"].geometry, predicate="intersects")
-  bgs = census_data.iloc[list(set(within[1]))] # Block groups in the PSAs
-
-bg_data = bgs
-# Set bounds to drawn area
-x1,y1,x2,y2 = location.geometry.total_bounds
-bounds = [[y1, x1], [y2, x2]]
-# bgs back to features
-bgs = json.loads(bgs.to_json())
+  # bgs back to features
+  bgs = json.loads(bgs.to_json())
+ 
 
 # Streamlit section
 # Map
