@@ -1,9 +1,4 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import json
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
@@ -11,6 +6,8 @@ import folium
 from folium.plugins import FastMarkerCluster
 import branca
 import altair as alt
+import sqlite3
+from pathlib import Path
 
 st.set_page_config(layout="wide", page_title="🚨 Drinking Water Violations")
 
@@ -23,15 +20,11 @@ st.markdown(""" # Violations of the Safe Drinking Water Act (SDWA)
   Details about any violations of SDWA in the selected area that may have been recorded since 2001.
 """)
 
-import sqlite3
-from pathlib import Path
+
 DB_PATH = Path('nj_sdwa.db')
 @st.cache_data
 def get_data(ids):
   try:
-    #url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    #data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    #data = pd.read_csv("data/NJ_SDWA_VIOLATIONS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
     list_of_ids = ""
     for i in ids:
       list_of_ids += f"'{i}',"
@@ -39,16 +32,10 @@ def get_data(ids):
     data = None
     query = f'select * from NJ_SDWA_VIOLATIONS where PWSID in ({list_of_ids})'
     with sqlite3.connect(DB_PATH) as conn:
-      data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+      data = pd.read_sql_query(query, conn)
     return data
   except:
     print("Sorry, can't get data")
-
-# Data Processing
-def get_data_from_ids(list_of_ids):
-  this_data = st.session_state["violations_data"]
-  this_data = this_data[this_data["PWSID"].isin(list_of_ids)]
-  return this_data
 
 # Make the maps' markers
 def marker_maker(data, facs_without_violations):
@@ -81,7 +68,6 @@ def marker_maker(data, facs_without_violations):
 with st.spinner(text="Loading data..."):
   try:
     sdwa = st.session_state["sdwa"]
-    #sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
     psa = st.session_state["these_psa"]
     box = st.session_state["box"]
   except:
@@ -95,7 +81,7 @@ def main():
     # Set bounds
     bounds = geopandas.GeoDataFrame.from_features(box)
     bounds.set_crs(4326, inplace=True)
-    x1,y1,x2,y2 = bounds.geometry.total_bounds
+    #x1,y1,x2,y2 = bounds.geometry.total_bounds
     # Get PWS
     these_pws = geopandas.clip(sdwa, bounds.geometry)
     these_pws = list(these_pws["PWSID"].unique())
@@ -144,7 +130,8 @@ def main():
       violations_data = pd.concat([violations_data, facs_without_violations])
       # Process data, make markers, save data
       st.session_state["violations_markers"], st.session_state["violations_colorscale"], violations_counts = marker_maker(violations_data, list(facs_without_violations["PWSID"].unique()))
-      st.session_state["violations_data"] = violations_data 
+      st.session_state["violations_data"] = violations_data
+      # Re-save bounds
       bounds = [[y1, x1], [y2, x2]]
     else:
       st.error("### There are no public water systems in this area.")
@@ -197,7 +184,7 @@ def main():
   with c2:
     # Manipulate data
     try:
-      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "IS_HEALTH_BASED_IND"])[["FAC_NAME"]].count()
+      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "IS_HEALTH_BASED_IND", "PWS_TYPE_CODE"])[["FAC_NAME"]].count()
       counts.rename(columns={"FAC_NAME": "VIOLATIONS_COUNT"}, inplace=True)
       counts.loc[counts.index.isin(list(facs_without_violations["FAC_NAME"].unique()),level='FAC_NAME'), "VIOLATIONS_COUNT"] = 0 # Reset facilities with no recorded violations to 0 count
       counts = counts.sort_values(by="FAC_NAME", ascending=False)
@@ -216,11 +203,36 @@ def main():
 
     """)
     st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
-    #st.dataframe(counts) 
+   
+    # Emphasize CWS in chart in bold
+    counts.reset_index(inplace=True)
+    cws = list(counts[counts["PWS_TYPE_CODE"]=="CWS"]["FAC_NAME"].unique()) # CWS
+    condition_str = ''
+    for c in cws:
+      condition_str += f'datum.value=="{c}" | '
+    condition_str = condition_str[:-2]
+
+    title = alt.Title(
+        text='Number of SDWA violations by facility, 2001-present',
+        subtitle="Community Water Systems (CWS) indicated in *bold*"
+    )
+    
     st.altair_chart(
-      alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
+      alt.Chart(counts, title = title).mark_bar().encode(
         x = alt.X("VIOLATIONS_COUNT", title = "Number of violations"),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x'), # Sort horizontal bar chart
+        y = alt.Y('FAC_NAME', axis=alt.Axis(
+          labelLimit = 500,
+          labelFontWeight=alt.condition(
+            condition_str,
+            #'datum.value=="KEYSTONE APT LLC-WELL HOUSE #1" | datum.value== "NJ AMERICAN WATER RARITAN-MILLSTONE WATER"',
+            #'datum.value in {cws}',
+            #alt.datum.FAC_NAME in cws,
+            #alt.FieldOneOfPredicate('datum.value',["KEYSTONE APT LLC-WELL HOUSE #1"]),
+            alt.value('bold'),  # If true, set font weight to bold
+            alt.value('normal') # If false, set font weight to normal
+          )
+          ), title=None
+          ).sort('-x'), # Sort horizontal bar chart
         color = 'IS_HEALTH_BASED_IND'
       ),
     use_container_width=True

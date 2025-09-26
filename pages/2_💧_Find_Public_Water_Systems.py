@@ -1,14 +1,8 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import json
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
 import folium
-import folium.features
 from folium.plugins import FastMarkerCluster
 import altair as alt
 
@@ -32,32 +26,9 @@ st.markdown("""
   The map will automatically select and show the public water systems in the map area. This page and the following pages will show analyses based on this selection. If you wish to change your search area, you can always come back to this page and move the map around.
 """)
 
-
-@st.cache_data
-def get_data(query):
-  try:
-    url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
-    return data
-  except:
-    print("Sorry, can't get data")
-
-# Data Processing
-def get_data_from_ids(table, key, list_of_ids):
-  ids  = ""
-  for i in list_of_ids:
-    ids += "'"+i +"',"
-  ids = ids[:-1]
-  # get data
-  sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
-  data = get_data(sql)
-  return data
-
 # Reload, but don't map, PWS
 try:
   sdwa = st.session_state["sdwa"]
-  #sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   psa = st.session_state["service_areas"]
   r = st.session_state["marker_styles"]["r"]
   s = st.session_state["marker_styles"]["s"]
@@ -71,7 +42,7 @@ def bbox_size(shape):
   # 1. Get the coordinates from the total_bounds
   minx, miny, maxx, maxy = st.session_state[shape].total_bounds
   # 2. Create a Shapely Polygon from the bounding box coordinates
-  bbox_polygon = Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy)])
+  bbox_polygon = Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy), (minx, miny)])
   # 3. Create a new GeoDataFrame for just the bounding box polygon
   bbox_gdf = geopandas.GeoDataFrame([1], geometry=[bbox_polygon], crs="EPSG:4326")
   return bbox_gdf.geometry[0].area
@@ -93,12 +64,6 @@ def main():
       print(bounds["_southWest"]["lng"] - st.session_state['bounds']["_southWest"]["lng"])
     except:
       pass
-    #if (
-    #  bounds["_southWest"]["lng"] - st.session_state['bounds']["_southWest"]["lng"]
-    #  ):
-    #  st.write("proceed")
-    #else:
-    #  st.stop()
     st.session_state['bounds'] = bounds
     # Create a feature from bounds
     feature = {
@@ -157,7 +122,6 @@ def main():
       popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["PRIMARY_SOURCE_CODE"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
       radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["PRIMARY_SOURCE_CODE"]], fill_opacity = 1) for index,mark in data.iterrows() if mark.geometry.is_valid]
     # Save data
-    
     st.session_state["these_psa"] = psa_gdf
     st.session_state["these_markers"] = markers
     st.session_state["these_data"] = data
@@ -207,20 +171,20 @@ def main():
 
         | Feature | What it means |
         |------|---------------|
-        | Colored circle with number | There are several public water systems here, zoom in and/or click to see them |
-        | Exploded lines | Several public water systems are listed at these coordinates in EPA's database, learn more about them by clicking the cirles the lines point to |
-        | Circle Outline - Solid | Public water system that draws from surface water |
-        | Circle Outline - None | Public water system that draws from groundwater |
+        | Colored circle with number | There are several Public Water System here, zoom in and/or click to see them |
+        | Exploded lines | Several Public Water System are listed at these coordinates in EPA's database, learn more about them by clicking the cirles the lines point to |
+        | Circle Outline - Solid | Public Water System that draws from surface water |
+        | Circle Outline - None | Public Water System that draws from groundwater |
         | Circle Color - Blue | Community Water Systems |
         | Circle Color - Yellow | Transient Non-Community Water Systems |
         | Circle Color - Green | Non-Transient, Non-Community Water Systems |
-        | Circle Size | Public water system  size, from very small to very large |
-        | Blue area with outline | Service area boundary for a selected public water system |
+        | Circle Size | Public Water System size, from very small to very large |
+        | Black Outline | Service area boundaries for public Community Water System |
       """)
 
   with con2:
     st.markdown("""
-                :thinking: Why are there both dots and blue areas on the map? We are working with two different datasets. One is from NJDEP and it describes the purveyor service areas (PSAs) - basically, the areas covered by different municipal water systems. Those are the blue polygons on the map (and on other pages, black outlines). The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
+                :thinking: Why are there both dots and blue areas on the map? We are working with two different datasets. One is [from NJDEP](https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e_13/about) and it describes the Purveyor Service Areas (PSAs) for public Community Water Systems. Those are the black outlines on the map. According to NJDEP, purveyors are "systems that pipe water for human consumption to at least 15 service connections used year-round, or one that regularly serves at least 25 year-round residents." The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
                 
                 Every polygon on the map (every PSA) should also have a corresponding point somewhere. But in EPA's database, although each PWS has an address with a zip code, instead of using that information to find the exact latitude and longitude of the facility, EPA instead calculates the latitude and longitude of the zip code and puts the facility there. That's why Newark Water Department is in West Orange and the Township of Wayne Water Department is in Wanaque. It's also why you will see, for example, over 100 dots in the exact same location in Wanaque. 
                 """)
@@ -230,7 +194,7 @@ def main():
     """)
 
     def chart_category(selected_category):
-      data = st.session_state["these_data"]#.loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021]
+      data = st.session_state["these_data"]
       counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)

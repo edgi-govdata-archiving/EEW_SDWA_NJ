@@ -1,17 +1,13 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
 import folium
-from folium.plugins import Draw
-import branca
 import altair as alt
 import json
-import requests, zipfile, io
+import requests
+import sqlite3
+from pathlib import Path
 
 st.set_page_config(layout="wide", page_title="🐟 Watershed Pollution")
 
@@ -31,19 +27,21 @@ redraw = st.button("< Return to Find Public Water Systems to change selected are
 if redraw:
     st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 
-st.markdown("On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.")
+st.markdown("On this page, you can explore the pollutants that industrial facilities and wastewater treatment plants (STP, WWTP) reported releasing into the watershed in 2022 in your selected area.")
 
 st.caption("""          
-  :face_with_monocle: Where does this data come from? When facilities receive permits to release certain effluents, often they are required to file "discharge monitoring reports"— so this data is from facilities reporting their own discharge. [Wikipedia](https://en.wikipedia.org/wiki/Discharge_Monitoring_Report) has a good introduction to the concept.
+  :thinking: Where does this data come from? When facilities receive permits to release certain effluents, often they are required to file "discharge monitoring reports"— so this data is from facilities reporting their own discharge. [Wikipedia](https://en.wikipedia.org/wiki/Discharge_Monitoring_Report) has a good introduction to the concept.
             
   :arrow_right: This data only includes the pollutants that are reported by a facility discharging into the water. Pollutants can also end up in the water from the air, from polluters operating below permit-requiring levels, and lots of other ways (can you think of more?) One way to learn more about what is in the water is with EPA's [How's My Waterway tool](https://mywaterway.epa.gov/), which shows the status of local waterways based on monitoring.
+  
+  :bulb: Be aware that some facilities near the coast may be discharging into saline or tidal waters, meaning they might not impact drinking water sources (but still could affect watershed health).
 """)
 
 import requests
 import json
 
 @st.cache_data
-def query_paginated_features(service_url, layer_id, where_clause="1=1", out_fields="*", page_size=None, distinct=False):
+def get_watershed_reports(service_url, layer_id, where_clause="1=1", out_fields="*", page_size=None, distinct=False):
     """
     Queries an ArcGIS Feature Server layer with pagination.
 
@@ -91,53 +89,6 @@ def query_paginated_features(service_url, layer_id, where_clause="1=1", out_fiel
 
     return all_features
 
-@st.cache_data
-def get_dmrs(wids):
-  """
-  Queries an ArcGIS Feature Server to find HUC12 watersheds intersecting with a given bounding box.
-
-  The script targets the Watershed Boundary Dataset (WBD) map service.
-
-  Args:
-      bounds (list): A list of two points [[y1, x1], [y2, x2]] defining the bounding box,
-                     where 'y' is latitude and 'x' is longitude.
-
-  Returns:
-      dict: A dictionary parsed from the JSON response containing the intersecting features,
-            or None if an error occurs.
-  """
-  # The ArcGIS REST API endpoint for querying the HUC12 layer.
-  # Layer '6' corresponds to HUC12 watersheds.
-  url = "https://services.arcgis.com/EXyRv0dqed53BmG2/ArcGIS/rest/services/New_Jersey_DMRs_2022/FeatureServer/1/query"
-
-  list_of_ids=""
-  for i in wids:
-    list_of_ids+=f"'{i}',"
-  list_of_ids=list_of_ids[:-1]
-
-  # Define the parameters for the GET request according to the ArcGIS REST API documentation.
-  params = {
-      'where': f'FAC_DERIVED_WBD in ({list_of_ids})',
-      'outFields': '*',  # Return all available attribute fields
-      'returnGeometry': 'true', # Include the geometry of the features in the response
-      'f': 'geojson' # Specify the response format as JSON
-  }
-
-  try:
-    # Send the GET request to the server
-    response = requests.get(url, params=params)
-    # Raise an HTTPError for bad responses (4xx or 5xx)
-    response.raise_for_status()
-    
-    # Parse the JSON response and return it
-    return response.json()
-
-  except requests.exceptions.RequestException as e:
-    print(f"An error occurred while making the request: {e}")
-    return None
-  except json.JSONDecodeError:
-    print("Failed to decode the JSON response from the server.")
-    return None
   
 @st.cache_data
 def find_intersecting_huc12(bounds):
@@ -195,8 +146,6 @@ def find_intersecting_huc12(bounds):
     print("Failed to decode the JSON response from the server.")
     return None
             
-import sqlite3
-from pathlib import Path
 DB_PATH = Path('nj_sdwa.db')
 @st.cache_data
 def get_data(wids):
@@ -206,7 +155,7 @@ def get_data(wids):
   list_of_ids=list_of_ids[:-1]
   query = f'select * from NJ_DMR_2022 where FAC_DERIVED_WBD in ({list_of_ids})'
   with sqlite3.connect(DB_PATH) as conn:
-    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = pd.read_sql_query(query, conn)
   return data
 
 @st.cache_data
@@ -217,7 +166,7 @@ def lookup(wids):
   list_of_ids=list_of_ids[:-1]
   query = f'select * from lookup where FAC_DERIVED_WBD in ({list_of_ids})'
   with sqlite3.connect(DB_PATH) as conn:
-    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = pd.read_sql_query(query, conn)
   return data
 
 # Load watershed data based on intersection
@@ -236,28 +185,15 @@ with st.spinner(text="Loading data..."):
   b = location.geometry.total_bounds
   x1,y1,x2,y2 = location.geometry.total_bounds
   bounds = [[y1, x1], [y2, x2]]
+
   # Get watershed boundary
   watersheds_features = find_intersecting_huc12(bounds)
-  
-  
   # Create the GeoDataFrame from the parsed attributes and geometries.
   watersheds = geopandas.GeoDataFrame.from_features(watersheds_features, crs=4326)
   watersheds.to_crs(4326, inplace=True) # Project data
-
-  within = watersheds.sindex.query(location.geometry, predicate="intersects")
-  watersheds = watersheds.iloc[list(set(within[1]))]
-  # Create GeoDataFrame
-  # Convert the Esri JSON features to a format suitable for GeoPandas
-  # This involves creating a Shapely geometry object from the geometry dictionary
-  #watersheds = geopandas.GeoDataFrame.from_features(watersheds, crs="EPSG:4326")
-  #st.write("WATERSHEDS")
-  #st.write(watersheds)
-  #for i,w in watersheds.iterrows():
-  #  if len(str(w["huc12"]))<12:
-  #    w["huc12"] = "0"+str(w["huc12"])
-  #watersheds['geometry'] = geopandas.GeoSeries.from_wkb(watersheds['wkb_geometry'])
-  #watersheds.drop("wkb_geometry", axis=1, inplace=True)
-  #watersheds = geopandas.GeoDataFrame(watersheds, crs=4269)
+  # Further filter watersheds
+  intersecting = watersheds.sindex.query(location.geometry, predicate="intersects")
+  watersheds = watersheds.iloc[list(set(intersecting[1]))]
   # Save data for later
   watershed_data = watersheds
   # Get watershed ids
@@ -266,23 +202,13 @@ with st.spinner(text="Loading data..."):
   watersheds = json.loads(watersheds.to_json())
 
   # Get discharge data based on watershed ids
-  #sql = 'select * from "DMR_FY2022_MVIEW" where "FAC_DERIVED_WBD" in ({})'.format(ids) 
-  url = "https://services.arcgis.com/EXyRv0dqed53BmG2/ArcGIS/rest/services/New_Jersey_DMRs_2022/FeatureServer/"
-
   list_of_ids=""
   for i in wids:
     list_of_ids+=f"'{i}',"
   list_of_ids=list_of_ids[:-1]
 
-  # Get parameters to select from 
-  #where = f'FAC_DERIVED_WBD in ({list_of_ids})'
-  #chems = query_paginated_features(service_url=url, layer_id=1, out_fields='PARAMETER_DESC', where_clause=where, page_size=2000, distinct=True)
-  
   widslist = [str(w) for w in wids]
   chems = lookup(wids)
-  #st.dataframe(chems)
-
- 
 
 # Streamlit section
 # Map
@@ -291,8 +217,6 @@ def main():
   c1 = st.container()
   c2 = st.container()
   c3 = st.container()
-  
-
 
   with c2:
     st.markdown("""
@@ -305,12 +229,12 @@ def main():
       label_visibility = "hidden"
     )
 
-    # Get DMRs
+    # Get DMRs for these watersheds and the selected pollutant
+    url =  "https://services.arcgis.com/EXyRv0dqed53BmG2/ArcGIS/rest/services/New_Jersey_DMRs_2022/FeatureServer/"
     where = f'FAC_DERIVED_WBD in ({list_of_ids}) and PARAMETER_DESC = \'{pollutant}\''
-    dmr = query_paginated_features(service_url=url, layer_id=1, where_clause=where, page_size=2000, distinct=False)
+    dmr = get_watershed_reports(service_url=url, layer_id=1, where_clause=where, page_size=2000, distinct=False)
     dmr = [d["attributes"] for d in dmr]
     dmr = pd.DataFrame(dmr)
-    #st.dataframe(dmr)
     
     top_pollutants = chems.groupby(['PARAMETER_DESC'])[["EXTERNAL_PERMIT_NMBR"]].sum()
     top_pollutants = top_pollutants.rename(columns={"EXTERNAL_PERMIT_NMBR": "# of facilities"})

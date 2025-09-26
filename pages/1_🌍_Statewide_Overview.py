@@ -1,20 +1,10 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
-import geopandas
 import folium
-from folium.plugins import Draw
-import branca
 import altair as alt
-import json
-import requests, zipfile, io
 
 st.set_page_config(layout="wide", page_title="🌍 Statewide Overview")
-#st.markdown('![EEW logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/eew.jpg?raw=true) ![EDGI logo](https://github.com/edgi-govdata-archiving/EEW-Image-Assets/blob/main/Jupyter%20instructions/edgi.png?raw=true)')
 
 previous = st.button("Previous: Welcome")
 if previous:
@@ -32,6 +22,35 @@ with st.spinner(text="Loading data..."):
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop()
 
+def make_map(shape):
+  m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, 
+                  zoom_control=True, scrollWheelZoom=False, 
+                  dragging=True, tiles="cartodb positron")
+
+  if shape == "psas": 
+    # Add polygons representing PSAs
+    service_areas = folium.GeoJson(
+      psas,
+      style_function = lambda sa: {"fillColor": None, "fillOpacity": 0, "weight": 2, "color": "black"},
+      tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME'], labels=False),
+      popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'], aliases=['Water system:', 'Website:'])
+      ).add_to(m)
+
+    out = st_folium(
+      m,
+      width = 500,
+      returned_objects=[]
+    )
+  else:
+    # Add markers representing PWS
+    for marker in markers:
+      m.add_child(marker)
+    out = st_folium(
+      m,
+      width = 500,
+      returned_objects=[]
+    )
+
 def main():
 
   # Streamlit section
@@ -45,35 +64,7 @@ def main():
     
     col1, col2 = st.columns(2)
 
-    #@st.cache_data()
-    def make_map(shape):
-      m = folium.Map(location = [40.304857, -74.499739], zoom_start = 8, 
-                     zoom_control=True, scrollWheelZoom=False, 
-                     dragging=True, tiles="cartodb positron")
-
-      if shape == "psas": 
-        # Add polygons representing PSAs
-        service_areas = folium.GeoJson(
-          psas,
-          style_function = lambda sa: {"fillColor": None, "fillOpacity": 0, "weight": 2, "color": "black"},
-          tooltip=folium.GeoJsonTooltip(fields=['SYS_NAME'], labels=False),
-          popup=folium.GeoJsonPopup(fields=['SYS_NAME', 'AGENCY_URL'], aliases=['Water system:', 'Website:'])
-          ).add_to(m)
-
-        out = st_folium(
-          m,
-          width = 500,
-          returned_objects=[]
-        )
-      else:
-        # Add markers representing PWS
-        for marker in markers:
-          m.add_child(marker)
-        out = st_folium(
-          m,
-          width = 500,
-          returned_objects=[]
-        )
+    
 
     with col1:
       with st.spinner(text="Loading interactive map..."):
@@ -132,7 +123,7 @@ def main():
     """)
 
     def chart_category(selected_category):
-      data = st.session_state["sdwa"]#.loc[st.session_state["sdwa"]["FISCAL_YEAR"] == 2021] # This ensures we're only summarizing currently operating facilities and not duplicating them
+      data = st.session_state["sdwa"]
       counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)
@@ -200,6 +191,7 @@ def main():
     next = st.button("Next: Find Public Water Systems")
     if next:
         st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
+
 if __name__ == "__main__":
     main()
 

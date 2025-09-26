@@ -1,8 +1,4 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
@@ -11,7 +7,6 @@ from folium.plugins import FastMarkerCluster
 import branca
 import altair as alt
 import json
-import requests, zipfile, io
 
 st.set_page_config(layout="wide", page_title="📏 Lead Service Lines")
 
@@ -55,7 +50,7 @@ def get_data(sas_ids):
   list_of_ids=list_of_ids[:-1]
   query = f'select * from nj_leadlines_2023 where PWSID in ({list_of_ids})'
   with sqlite3.connect(DB_PATH) as conn:
-    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = pd.read_sql_query(query, conn)
   return data
 
 # Load and join lead/service area data
@@ -64,15 +59,18 @@ with st.spinner(text="Loading data..."):
   try:
     service_areas = st.session_state["these_psa"]
     location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
+    st.write(location)
   except:
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop() 
   # Filter to area
-  sas = service_areas[service_areas.geometry.intersects(location.geometry[0])] # Service areas in the place
+  #sas = service_areas[service_areas.geometry.intersects(location.geometry[0])] # Service areas in the place
+  intersecting = service_areas.geometry.sindex.query(location.geometry, predicate="intersects")
+  sas = service_areas.iloc[list(set(intersecting[1]))]
   # Get lead data
   sas_ids = list(sas.reset_index()["PWID"].unique())
-  lead = get_data(sas_ids)#pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
-    #dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
+  st.write(sas_ids)
+  lead = get_data(sas_ids)
   lead.rename(columns={"Measurement (service lines)":"Number of lead service lines in area", "size": "System Size"}, inplace=True)
   lead = sas.join(lead.set_index("PWSID"))
   lead.set_index("SYS_NAME", inplace=True)
@@ -95,7 +93,7 @@ def main():
 
   if lead_data.empty:
     with c1:
-      st.error("### There are no purveyor service areas required to count lead service lines in this area.")
+      st.error("### There are no purveyor service areas reporting lead service lines in this area.")
       st.stop()
 
   with c1:
@@ -178,7 +176,7 @@ def main():
       st.dataframe(counts) # show table
 
   st.caption("""
-    Data compiled from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
+    Data compiled for 2023 (latest year available as of September 2025) from [https://www.njwatercheck.com/BenchmarkHub](https://www.njwatercheck.com/BenchmarkHub)
   """)
   
   st.markdown("""
