@@ -1,8 +1,4 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
@@ -11,7 +7,6 @@ from folium.plugins import FastMarkerCluster
 import branca
 import altair as alt
 import json
-import requests, zipfile, io
 
 st.set_page_config(layout="wide", page_title="📏 Lead Service Lines")
 
@@ -55,7 +50,7 @@ def get_data(sas_ids):
   list_of_ids=list_of_ids[:-1]
   query = f'select * from nj_leadlines_2023 where PWSID in ({list_of_ids})'
   with sqlite3.connect(DB_PATH) as conn:
-    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = pd.read_sql_query(query, conn)
   return data
 
 # Load and join lead/service area data

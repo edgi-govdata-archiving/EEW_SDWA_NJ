@@ -6,6 +6,8 @@ import folium
 import altair as alt
 import json
 import requests
+import sqlite3
+from pathlib import Path
 
 st.set_page_config(layout="wide", page_title="🐟 Watershed Pollution")
 
@@ -25,12 +27,14 @@ redraw = st.button("< Return to Find Public Water Systems to change selected are
 if redraw:
     st.switch_page("pages/2_💧_Find_Public_Water_Systems.py")
 
-st.markdown("On this page, you can explore the pollutants that industrial facilities reported releasing into the watershed in 2022 in your selected area.")
+st.markdown("On this page, you can explore the pollutants that industrial facilities and wastewater treatment plants (STP, WWTP) reported releasing into the watershed in 2022 in your selected area.")
 
 st.caption("""          
-  :face_with_monocle: Where does this data come from? When facilities receive permits to release certain effluents, often they are required to file "discharge monitoring reports"— so this data is from facilities reporting their own discharge. [Wikipedia](https://en.wikipedia.org/wiki/Discharge_Monitoring_Report) has a good introduction to the concept.
+  :thinking: Where does this data come from? When facilities receive permits to release certain effluents, often they are required to file "discharge monitoring reports"— so this data is from facilities reporting their own discharge. [Wikipedia](https://en.wikipedia.org/wiki/Discharge_Monitoring_Report) has a good introduction to the concept.
             
   :arrow_right: This data only includes the pollutants that are reported by a facility discharging into the water. Pollutants can also end up in the water from the air, from polluters operating below permit-requiring levels, and lots of other ways (can you think of more?) One way to learn more about what is in the water is with EPA's [How's My Waterway tool](https://mywaterway.epa.gov/), which shows the status of local waterways based on monitoring.
+  
+  :bulb: Be aware that some facilities near the coast may be discharging into saline or tidal waters, meaning they might not impact drinking water sources (but still could affect watershed health).
 """)
 
 import requests
@@ -142,8 +146,6 @@ def find_intersecting_huc12(bounds):
     print("Failed to decode the JSON response from the server.")
     return None
             
-import sqlite3
-from pathlib import Path
 DB_PATH = Path('nj_sdwa.db')
 @st.cache_data
 def get_data(wids):
@@ -153,7 +155,7 @@ def get_data(wids):
   list_of_ids=list_of_ids[:-1]
   query = f'select * from NJ_DMR_2022 where FAC_DERIVED_WBD in ({list_of_ids})'
   with sqlite3.connect(DB_PATH) as conn:
-    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = pd.read_sql_query(query, conn)
   return data
 
 @st.cache_data
@@ -164,7 +166,7 @@ def lookup(wids):
   list_of_ids=list_of_ids[:-1]
   query = f'select * from lookup where FAC_DERIVED_WBD in ({list_of_ids})'
   with sqlite3.connect(DB_PATH) as conn:
-    data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+    data = pd.read_sql_query(query, conn)
   return data
 
 # Load watershed data based on intersection
@@ -183,15 +185,15 @@ with st.spinner(text="Loading data..."):
   b = location.geometry.total_bounds
   x1,y1,x2,y2 = location.geometry.total_bounds
   bounds = [[y1, x1], [y2, x2]]
+
   # Get watershed boundary
   watersheds_features = find_intersecting_huc12(bounds)
-  
   # Create the GeoDataFrame from the parsed attributes and geometries.
   watersheds = geopandas.GeoDataFrame.from_features(watersheds_features, crs=4326)
   watersheds.to_crs(4326, inplace=True) # Project data
-
-  within = watersheds.sindex.query(location.geometry, predicate="intersects")
-  watersheds = watersheds.iloc[list(set(within[1]))]
+  # Further filter watersheds
+  intersecting = watersheds.sindex.query(location.geometry, predicate="intersects")
+  watersheds = watersheds.iloc[list(set(intersecting[1]))]
   # Save data for later
   watershed_data = watersheds
   # Get watershed ids
@@ -215,8 +217,6 @@ def main():
   c1 = st.container()
   c2 = st.container()
   c3 = st.container()
-  
-
 
   with c2:
     st.markdown("""
@@ -229,7 +229,7 @@ def main():
       label_visibility = "hidden"
     )
 
-    # Get DMRs
+    # Get DMRs for these watersheds and the selected pollutant
     url =  "https://services.arcgis.com/EXyRv0dqed53BmG2/ArcGIS/rest/services/New_Jersey_DMRs_2022/FeatureServer/"
     where = f'FAC_DERIVED_WBD in ({list_of_ids}) and PARAMETER_DESC = \'{pollutant}\''
     dmr = get_watershed_reports(service_url=url, layer_id=1, where_clause=where, page_size=2000, distinct=False)
