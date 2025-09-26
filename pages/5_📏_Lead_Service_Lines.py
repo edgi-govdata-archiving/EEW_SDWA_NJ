@@ -59,7 +59,6 @@ with st.spinner(text="Loading data..."):
   try:
     service_areas = st.session_state["these_psa"]
     location = geopandas.GeoDataFrame.from_features(st.session_state["box"]) # Try loading the active box area
-    st.write(location)
   except:
     st.error("### Error: Please start on the 'Welcome' page.")
     st.stop() 
@@ -69,7 +68,6 @@ with st.spinner(text="Loading data..."):
   sas = service_areas.iloc[list(set(intersecting[1]))]
   # Get lead data
   sas_ids = list(sas.reset_index()["PWID"].unique())
-  st.write(sas_ids)
   lead = get_data(sas_ids)
   lead.rename(columns={"Measurement (service lines)":"Number of lead service lines in area", "size": "System Size"}, inplace=True)
   lead = sas.join(lead.set_index("PWSID"))
