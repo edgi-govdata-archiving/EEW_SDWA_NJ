@@ -184,7 +184,7 @@ def main():
   with c2:
     # Manipulate data
     try:
-      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "IS_HEALTH_BASED_IND"])[["FAC_NAME"]].count()
+      counts = st.session_state["violations_data"].groupby(by=["FAC_NAME", "IS_HEALTH_BASED_IND", "PWS_TYPE_CODE"])[["FAC_NAME"]].count()
       counts.rename(columns={"FAC_NAME": "VIOLATIONS_COUNT"}, inplace=True)
       counts.loc[counts.index.isin(list(facs_without_violations["FAC_NAME"].unique()),level='FAC_NAME'), "VIOLATIONS_COUNT"] = 0 # Reset facilities with no recorded violations to 0 count
       counts = counts.sort_values(by="FAC_NAME", ascending=False)
@@ -203,11 +203,36 @@ def main():
 
     """)
     st.caption("Information about health-based violations is from EPA's [Data Dictionary](https://echo.epa.gov/help/drinking-water-qlik-dashboard-help#vio)")
-    #st.dataframe(counts) 
+   
+    # Emphasize CWS in chart in bold
+    counts.reset_index(inplace=True)
+    cws = list(counts[counts["PWS_TYPE_CODE"]=="CWS"]["FAC_NAME"].unique()) # CWS
+    condition_str = ''
+    for c in cws:
+      condition_str += f'datum.value=="{c}" | '
+    condition_str = condition_str[:-2]
+
+    title = alt.Title(
+        text='Number of SDWA violations by facility, 2001-present',
+        subtitle="Community Water Systems (CWS) indicated in *bold*"
+    )
+    
     st.altair_chart(
-      alt.Chart(counts.reset_index(), title = 'Number of SDWA violations by facility, 2001-present').mark_bar().encode(
+      alt.Chart(counts, title = title).mark_bar().encode(
         x = alt.X("VIOLATIONS_COUNT", title = "Number of violations"),
-        y = alt.Y('FAC_NAME', axis=alt.Axis(labelLimit = 500), title=None).sort('-x'), # Sort horizontal bar chart
+        y = alt.Y('FAC_NAME', axis=alt.Axis(
+          labelLimit = 500,
+          labelFontWeight=alt.condition(
+            condition_str,
+            #'datum.value=="KEYSTONE APT LLC-WELL HOUSE #1" | datum.value== "NJ AMERICAN WATER RARITAN-MILLSTONE WATER"',
+            #'datum.value in {cws}',
+            #alt.datum.FAC_NAME in cws,
+            #alt.FieldOneOfPredicate('datum.value',["KEYSTONE APT LLC-WELL HOUSE #1"]),
+            alt.value('bold'),  # If true, set font weight to bold
+            alt.value('normal') # If false, set font weight to normal
+          )
+          ), title=None
+          ).sort('-x'), # Sort horizontal bar chart
         color = 'IS_HEALTH_BASED_IND'
       ),
     use_container_width=True
