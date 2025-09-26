@@ -32,32 +32,9 @@ st.markdown("""
   The map will automatically select and show the public water systems in the map area. This page and the following pages will show analyses based on this selection. If you wish to change your search area, you can always come back to this page and move the map around.
 """)
 
-
-@st.cache_data
-def get_data(query):
-  try:
-    url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    data = pd.read_csv(data_location, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
-    return data
-  except:
-    print("Sorry, can't get data")
-
-# Data Processing
-def get_data_from_ids(table, key, list_of_ids):
-  ids  = ""
-  for i in list_of_ids:
-    ids += "'"+i +"',"
-  ids = ids[:-1]
-  # get data
-  sql = 'select * from "'+table+'" where "'+key+'" in ({})'.format(ids)
-  data = get_data(sql)
-  return data
-
 # Reload, but don't map, PWS
 try:
   sdwa = st.session_state["sdwa"]
-  #sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
   psa = st.session_state["service_areas"]
   r = st.session_state["marker_styles"]["r"]
   s = st.session_state["marker_styles"]["s"]
@@ -71,7 +48,7 @@ def bbox_size(shape):
   # 1. Get the coordinates from the total_bounds
   minx, miny, maxx, maxy = st.session_state[shape].total_bounds
   # 2. Create a Shapely Polygon from the bounding box coordinates
-  bbox_polygon = Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy)])
+  bbox_polygon = Polygon([(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy), (minx, miny)])
   # 3. Create a new GeoDataFrame for just the bounding box polygon
   bbox_gdf = geopandas.GeoDataFrame([1], geometry=[bbox_polygon], crs="EPSG:4326")
   return bbox_gdf.geometry[0].area
@@ -93,12 +70,6 @@ def main():
       print(bounds["_southWest"]["lng"] - st.session_state['bounds']["_southWest"]["lng"])
     except:
       pass
-    #if (
-    #  bounds["_southWest"]["lng"] - st.session_state['bounds']["_southWest"]["lng"]
-    #  ):
-    #  st.write("proceed")
-    #else:
-    #  st.stop()
     st.session_state['bounds'] = bounds
     # Create a feature from bounds
     feature = {
@@ -157,7 +128,6 @@ def main():
       popup=folium.Popup(mark["FAC_NAME"]+'<br><b>Source:</b> '+mark["PRIMARY_SOURCE_CODE"]+'<br><b>Size:</b> '+mark["SYSTEM_SIZE"]+'<br><b>Type:</b> '+mark["PWS_TYPE_CODE"]),
       radius=r[mark["SYSTEM_SIZE"]], fill_color=t[mark["PWS_TYPE_CODE"]], stroke=s[mark["PRIMARY_SOURCE_CODE"]], fill_opacity = 1) for index,mark in data.iterrows() if mark.geometry.is_valid]
     # Save data
-    
     st.session_state["these_psa"] = psa_gdf
     st.session_state["these_markers"] = markers
     st.session_state["these_data"] = data
@@ -230,7 +200,7 @@ def main():
     """)
 
     def chart_category(selected_category):
-      data = st.session_state["these_data"]#.loc[st.session_state["these_data"]["FISCAL_YEAR"]==2021]
+      data = st.session_state["these_data"]
       counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)

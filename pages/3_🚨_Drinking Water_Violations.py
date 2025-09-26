@@ -1,9 +1,4 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import json
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
@@ -11,6 +6,8 @@ import folium
 from folium.plugins import FastMarkerCluster
 import branca
 import altair as alt
+import sqlite3
+from pathlib import Path
 
 st.set_page_config(layout="wide", page_title="🚨 Drinking Water Violations")
 
@@ -23,15 +20,11 @@ st.markdown(""" # Violations of the Safe Drinking Water Act (SDWA)
   Details about any violations of SDWA in the selected area that may have been recorded since 2001.
 """)
 
-import sqlite3
-from pathlib import Path
+
 DB_PATH = Path('nj_sdwa.db')
 @st.cache_data
 def get_data(ids):
   try:
-    #url= 'https://portal.gss.stonybrook.edu/echoepa/?query='
-    #data_location = url + urllib.parse.quote_plus(query) + '&pg'
-    #data = pd.read_csv("data/NJ_SDWA_VIOLATIONS.csv", encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
     list_of_ids = ""
     for i in ids:
       list_of_ids += f"'{i}',"
@@ -39,16 +32,10 @@ def get_data(ids):
     data = None
     query = f'select * from NJ_SDWA_VIOLATIONS where PWSID in ({list_of_ids})'
     with sqlite3.connect(DB_PATH) as conn:
-      data = pd.read_sql_query(query, conn)#, encoding='iso-8859-1', dtype={"REGISTRY_ID": "Int64"})
+      data = pd.read_sql_query(query, conn)
     return data
   except:
     print("Sorry, can't get data")
-
-# Data Processing
-def get_data_from_ids(list_of_ids):
-  this_data = st.session_state["violations_data"]
-  this_data = this_data[this_data["PWSID"].isin(list_of_ids)]
-  return this_data
 
 # Make the maps' markers
 def marker_maker(data, facs_without_violations):

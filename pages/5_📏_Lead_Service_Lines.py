@@ -71,8 +71,7 @@ with st.spinner(text="Loading data..."):
   sas = service_areas[service_areas.geometry.intersects(location.geometry[0])] # Service areas in the place
   # Get lead data
   sas_ids = list(sas.reset_index()["PWID"].unique())
-  lead = get_data(sas_ids)#pd.read_csv("https://raw.githubusercontent.com/edgi-govdata-archiving/ECHO-SDWA/main/nj_leadlines.csv", 
-    #dtype={"Measurement (service lines)": int}) # This is a CSV created by collating the results from the above link
+  lead = get_data(sas_ids)
   lead.rename(columns={"Measurement (service lines)":"Number of lead service lines in area", "size": "System Size"}, inplace=True)
   lead = sas.join(lead.set_index("PWSID"))
   lead.set_index("SYS_NAME", inplace=True)
