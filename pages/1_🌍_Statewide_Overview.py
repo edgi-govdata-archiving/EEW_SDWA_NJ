@@ -1,6 +1,3 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
 import streamlit as st
 from streamlit_folium import st_folium
@@ -126,7 +123,7 @@ def main():
     """)
 
     def chart_category(selected_category):
-      data = st.session_state["sdwa"]#.loc[st.session_state["sdwa"]["FISCAL_YEAR"] == 2021] # This ensures we're only summarizing currently operating facilities and not duplicating them
+      data = st.session_state["sdwa"]
       counts = data.groupby(by=selected_category)[[selected_category]].count().rename(columns={selected_category:"Number of Facilities"})
       counts.sort_values(by="Number of Facilities",ascending=False, inplace=True) # Sort table by selected_category
       #st.dataframe(counts)

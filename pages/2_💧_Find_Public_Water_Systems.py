@@ -1,14 +1,8 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
-import json
-import urllib.parse
 import streamlit as st
 from streamlit_folium import st_folium
 import geopandas
 import folium
-import folium.features
 from folium.plugins import FastMarkerCluster
 import altair as alt
 
@@ -177,20 +171,20 @@ def main():
 
         | Feature | What it means |
         |------|---------------|
-        | Colored circle with number | There are several public water systems here, zoom in and/or click to see them |
-        | Exploded lines | Several public water systems are listed at these coordinates in EPA's database, learn more about them by clicking the cirles the lines point to |
-        | Circle Outline - Solid | Public water system that draws from surface water |
-        | Circle Outline - None | Public water system that draws from groundwater |
+        | Colored circle with number | There are several Public Water System here, zoom in and/or click to see them |
+        | Exploded lines | Several Public Water System are listed at these coordinates in EPA's database, learn more about them by clicking the cirles the lines point to |
+        | Circle Outline - Solid | Public Water System that draws from surface water |
+        | Circle Outline - None | Public Water System that draws from groundwater |
         | Circle Color - Blue | Community Water Systems |
         | Circle Color - Yellow | Transient Non-Community Water Systems |
         | Circle Color - Green | Non-Transient, Non-Community Water Systems |
-        | Circle Size | Public water system  size, from very small to very large |
-        | Blue area with outline | Service area boundary for a selected public water system |
+        | Circle Size | Public Water System size, from very small to very large |
+        | Black Outline | Service area boundaries for public Community Water System |
       """)
 
   with con2:
     st.markdown("""
-                :thinking: Why are there both dots and blue areas on the map? We are working with two different datasets. One is from NJDEP and it describes the purveyor service areas (PSAs) - basically, the areas covered by different municipal water systems. Those are the blue polygons on the map (and on other pages, black outlines). The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
+                :thinking: Why are there both dots and blue areas on the map? We are working with two different datasets. One is [from NJDEP](https://njogis-newjersey.opendata.arcgis.com/datasets/00e7ff046ddb4302abe7b49b2ddee07e_13/about) and it describes the Purveyor Service Areas (PSAs) for public Community Water Systems. Those are the black outlines on the map. According to NJDEP, purveyors are "systems that pipe water for human consumption to at least 15 service connections used year-round, or one that regularly serves at least 25 year-round residents." The second dataset is from EPA and it describes Public Water Systems (PWS). These are the points on the maps. All PSAs are PWS, but not all PWS are PSAs. Some PWS are camps, golf courses, hospitals, prisons, etc. But some PWS are also PSAs- for example, Newark Water Department and the Township of Wayne Water Department.
                 
                 Every polygon on the map (every PSA) should also have a corresponding point somewhere. But in EPA's database, although each PWS has an address with a zip code, instead of using that information to find the exact latitude and longitude of the facility, EPA instead calculates the latitude and longitude of the zip code and puts the facility there. That's why Newark Water Department is in West Orange and the Township of Wayne Water Department is in Wanaque. It's also why you will see, for example, over 100 dots in the exact same location in Wanaque. 
                 """)

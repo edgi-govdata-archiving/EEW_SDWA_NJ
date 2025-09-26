@@ -1,6 +1,3 @@
-# streamlit place picker test
-# Pick a place and get ECHO facilities
-#https://docs.streamlit.io/library/get-started/create-an-app
 import pandas as pd
 import streamlit as st
 from streamlit_folium import st_folium
