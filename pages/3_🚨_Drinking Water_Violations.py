@@ -68,7 +68,6 @@ def marker_maker(data, facs_without_violations):
 with st.spinner(text="Loading data..."):
   try:
     sdwa = st.session_state["sdwa"]
-    #sdwa = sdwa.loc[sdwa["FISCAL_YEAR"] == 2021]  # for mapping purposes, delete any duplicates
     psa = st.session_state["these_psa"]
     box = st.session_state["box"]
   except:
@@ -82,7 +81,7 @@ def main():
     # Set bounds
     bounds = geopandas.GeoDataFrame.from_features(box)
     bounds.set_crs(4326, inplace=True)
-    x1,y1,x2,y2 = bounds.geometry.total_bounds
+    #x1,y1,x2,y2 = bounds.geometry.total_bounds
     # Get PWS
     these_pws = geopandas.clip(sdwa, bounds.geometry)
     these_pws = list(these_pws["PWSID"].unique())
@@ -131,7 +130,8 @@ def main():
       violations_data = pd.concat([violations_data, facs_without_violations])
       # Process data, make markers, save data
       st.session_state["violations_markers"], st.session_state["violations_colorscale"], violations_counts = marker_maker(violations_data, list(facs_without_violations["PWSID"].unique()))
-      st.session_state["violations_data"] = violations_data 
+      st.session_state["violations_data"] = violations_data
+      # Re-save bounds
       bounds = [[y1, x1], [y2, x2]]
     else:
       st.error("### There are no public water systems in this area.")
